@@ -265,6 +265,7 @@ void EntryDataFormat::initBuiltinFormats()
 	new XMModuleDataFormat();
 	new S3MModuleDataFormat();
 	new MODModuleDataFormat();
+	new OKTModuleDataFormat();
 	new IMFDataFormat();
 	new DoomSoundDataFormat();
 	new WolfSoundDataFormat();
@@ -272,7 +273,17 @@ void EntryDataFormat::initBuiltinFormats()
 	new DoomPCSpeakerDataFormat();
 	new JaguarDoomSoundDataFormat();
 	new VocDataFormat();
-	new SPDCDataFormat();
+	new AYDataFormat();
+	new GBSDataFormat();
+	new GYMDataFormat();
+	new HESDataFormat();
+	new KSSDataFormat();
+	new NSFDataFormat();
+	new NSFEDataFormat();
+	new SAPDataFormat();
+	new SPCDataFormat();
+	new VGMDataFormat();
+	new VGZDataFormat();
 	new BloodSFXDataFormat();
 	new WAVDataFormat();
 	new OggDataFormat();

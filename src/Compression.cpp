@@ -137,7 +137,7 @@ bool Compression::ZipInflate(MemChunk& in, MemChunk& out, size_t maxsize)
 	return ret;
 }
 
-/* Compression::GZipInflate
+/* Compression::GZipDeflate
  * Deflates the content of <in> as a gzip stream to <out>
  * GZip streams use a windowbits size of MAX_WBITS (15)
  * The value is inverted to tell it shouldn't use headers or footers

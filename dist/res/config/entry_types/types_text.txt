@@ -481,6 +481,12 @@ entry_types
 		name = "Source Code";
 		match_ext = "c", "cpp", "cxx", "h", "hpp", "hxx", "java", "cs", "js", "bas", "py", "pl", "pm", "php", "pas", "p", "pp", "vb", "rb", "l", "m", "d", "e";
 	}
+	
+	playlist : text
+	{
+		name = "Playlist";
+		match_ext = "m3u";
+	}
 
 	txt : text
 	{

@@ -55,7 +55,7 @@ typedef UWORD WORD;
 
 #include "load_pat.h"
 
-#ifdef MSC_VER
+#if defined(WIN32) || defined(MSC_VER)
 #define DIRDELIM		'\\'
 #define TIMIDITYCFG	"C:\\TIMIDITY\\TIMIDITY.CFG"
 #define PATHFORPAT	"C:\\TIMIDITY\\INSTRUMENTS"
@@ -66,6 +66,28 @@ typedef UWORD WORD;
 #endif
 
 #define PAT_ENV_PATH2CFG			"MMPAT_PATH_TO_CFG"
+
+/*******************************************************************
+ * INSERT SLADE 3 CODE
+ *******************************************************************/
+
+#include <wx/string.h>
+typedef wxString string;
+#define CHR(s) (static_cast<const char*>((s).ToAscii()))
+#include <vector>
+using std::vector;
+class wxFile;
+#include "CVar.h"
+#define QUOTE(x) #x
+#define XQUOTE(x) QUOTE(x)
+CVAR(String, gus_patch_path, XQUOTE(TIMIDITYCFG), CVAR_SAVE)
+CVAR(String, timidity_cfg_path, XQUOTE(PATHFORPAT), CVAR_SAVE)
+#undef XQUOTE
+#undef QUOTE
+
+/*******************************************************************
+ * END SLADE 3 CODE
+ *******************************************************************/
 
 //Modified by Kerli Low//
 //Replace isblank with IsBlank since isblank is not available on all compilers
@@ -80,9 +102,9 @@ int IsBlank(int c)
 
 // 128 gm and 63 drum
 #define MAXSMP				191
-static char midipat[MAXSMP][128];
-static char pathforpat[128];
-static char timiditycfg[128];
+static char midipat[MAXSMP][PATH_MAX];
+static char pathforpat[PATH_MAX];
+static char timiditycfg[PATH_MAX];
 
 #pragma pack(1)
 
@@ -400,15 +422,15 @@ void pat_init_patnames(void)
 	char line[PATH_MAX];
 	char cfgsources[5][PATH_MAX] = {{0}, {0}, {0}, {0}, {0}};
 	MMSTREAM *mmcfg;
-	strcpy(pathforpat, PATHFORPAT);
-	strcpy(timiditycfg, TIMIDITYCFG);
-	p = getenv(PAT_ENV_PATH2CFG);
+	strcpy(pathforpat, CHR((string)gus_patch_path));
+	strcpy(timiditycfg, CHR((string)timidity_cfg_path));
+/*	p = getenv(PAT_ENV_PATH2CFG);
 	if( p ) {
 		strcpy(timiditycfg,p);
 		strcpy(pathforpat,p);
 		strcat(timiditycfg,"/timidity.cfg");
 		strcat(pathforpat,"/instruments");
-	}
+	}*/
 	strncpy(cfgsources[0], timiditycfg, PATH_MAX);
 	nsources = 1;
 

@@ -35,7 +35,7 @@ size_t checkForTags(MemChunk& mc)
 			// Needs to be at least that big
 			if (mc.getSize() < size + 4)
 				return s;
-			return size;
+			return s+size;
 		}
 	}
 	// It's also possible to get an ID3v1 (or v1.1) tag.
@@ -45,7 +45,7 @@ size_t checkForTags(MemChunk& mc)
 		// Check for ID3 header (ID3v1).
 		if (mc[s+0] == 'T' && mc[s+1] == 'A' && mc[s+2] == 'G')
 		{
-			return 128;
+			return s+128;
 		}
 	}
 	return s;
@@ -272,6 +272,31 @@ public:
 				{
 					return EDF_TRUE;
 				}
+			}
+		}
+
+		return EDF_FALSE;
+	}
+};
+
+class OKTModuleDataFormat : public EntryDataFormat
+{
+public:
+	OKTModuleDataFormat() : EntryDataFormat("mod_okt") {};
+	~OKTModuleDataFormat() {}
+
+	int isThisFormat(MemChunk& mc)
+	{
+		// Check size
+		if (mc.getSize() > 1360)
+		{
+			// Check for mod header
+			if (mc[ 0] == 'O' && mc[ 1] == 'K' && mc[ 2] == 'T' && mc[ 3] == 'A' &&
+				mc[ 4] == 'S' && mc[ 5] == 'O' && mc[ 6] == 'N' && mc[ 7] == 'G' &&
+				mc[ 8] == 'C' && mc[ 9] == 'M' && mc[10] == 'O' && mc[11] == 'D' &&
+				mc[24] == 'S' && mc[25] == 'A' && mc[26] == 'M' && mc[27] == 'P')
+			{
+				return EDF_TRUE;
 			}
 		}
 
@@ -646,17 +671,171 @@ public:
 	}
 };
 
-// SNES SPC format, supported by ZDoom and Eternity
-class SPDCDataFormat : public EntryDataFormat
+class AYDataFormat : public EntryDataFormat
 {
 public:
-	SPDCDataFormat() : EntryDataFormat("snd_spc") {};
-	~SPDCDataFormat() {}
+	AYDataFormat() : EntryDataFormat("gme_ay") {};
+	~AYDataFormat() {}
 
 	int isThisFormat(MemChunk& mc)
 	{
 		// Check size
-		if (mc.getSize() > 35)
+		if (mc.getSize() > 20)
+		{
+			// Check for header text using official signature string
+			if (memcmp(mc.getData(), "ZXAYEMUL", 8) == 0)
+				return EDF_TRUE;
+		}
+		return EDF_FALSE;
+	}
+};
+
+class GBSDataFormat : public EntryDataFormat
+{
+public:
+	GBSDataFormat() : EntryDataFormat("gme_gbs") {};
+	~GBSDataFormat() {}
+
+	int isThisFormat(MemChunk& mc)
+	{
+		// Check size
+		if (mc.getSize() > 112)
+		{
+			// Talk about a weak signature...
+			if (memcmp(mc.getData(), "GBS\x01", 4) == 0)
+				return EDF_TRUE;
+		}
+		return EDF_FALSE;
+	}
+};
+
+class GYMDataFormat : public EntryDataFormat
+{
+public:
+	GYMDataFormat() : EntryDataFormat("gme_gym") {};
+	~GYMDataFormat() {}
+
+	int isThisFormat(MemChunk& mc)
+	{
+		// Check size
+		if (mc.getSize() > 428)
+		{
+			// Talk about a weak signature... And some GYM files don't even have that...
+			if (memcmp(mc.getData(), "GYMX", 4) == 0)
+				return EDF_TRUE;
+		}
+		return EDF_FALSE;
+	}
+};
+
+class HESDataFormat : public EntryDataFormat
+{
+public:
+	HESDataFormat() : EntryDataFormat("gme_hes") {};
+	~HESDataFormat() {}
+
+	int isThisFormat(MemChunk& mc)
+	{
+		// Check size
+		if (mc.getSize() > 32)
+		{
+			// Another weak signature
+			if (memcmp(mc.getData(), "HESM", 4) == 0)
+				return EDF_TRUE;
+		}
+		return EDF_FALSE;
+	}
+};
+
+class KSSDataFormat : public EntryDataFormat
+{
+public:
+	KSSDataFormat() : EntryDataFormat("gme_kss") {};
+	~KSSDataFormat() {}
+
+	int isThisFormat(MemChunk& mc)
+	{
+		// Check size
+		if (mc.getSize() > 16)
+		{
+			// Weak signatures for the weak signature god!
+			// Unreliable identifications for his throne!
+			if (memcmp(mc.getData(), "KSCC", 4) == 0 ||
+				memcmp(mc.getData(), "KSSX", 4) == 0)
+				return EDF_TRUE;
+		}
+		return EDF_FALSE;
+	}
+};
+
+class NSFDataFormat : public EntryDataFormat
+{
+public:
+	NSFDataFormat() : EntryDataFormat("gme_nsf") {};
+	~NSFDataFormat() {}
+
+	int isThisFormat(MemChunk& mc)
+	{
+		// Check size
+		if (mc.getSize() > 128)
+		{
+			// Check for header text using official signature string
+			if (memcmp(mc.getData(), "NESM\x1A", 5) == 0)
+				return EDF_TRUE;
+		}
+		return EDF_FALSE;
+	}
+};
+
+class NSFEDataFormat : public EntryDataFormat
+{
+public:
+	NSFEDataFormat() : EntryDataFormat("gme_nsfe") {};
+	~NSFEDataFormat() {}
+
+	int isThisFormat(MemChunk& mc)
+	{
+		// Check size
+		if (mc.getSize() > 5)
+		{
+			// Check for header text using official signature string
+			if (memcmp(mc.getData(), "NESM\x1A", 5) == 0)
+				return EDF_TRUE;
+		}
+		return EDF_FALSE;
+	}
+};
+
+class SAPDataFormat : public EntryDataFormat
+{
+public:
+	SAPDataFormat() : EntryDataFormat("gme_sap") {};
+	~SAPDataFormat() {}
+
+	int isThisFormat(MemChunk& mc)
+	{
+		// Check size
+		if (mc.getSize() > 16)
+		{
+			// Check for header text using official signature string
+			if (memcmp(mc.getData(), "SAP\x0D\x0A", 5) == 0)
+				return EDF_TRUE;
+		}
+		return EDF_FALSE;
+	}
+};
+
+// SNES SPC format, supported by ZDoom and Eternity
+class SPCDataFormat : public EntryDataFormat
+{
+public:
+	SPCDataFormat() : EntryDataFormat("gme_spc") {};
+	~SPCDataFormat() {}
+
+	int isThisFormat(MemChunk& mc)
+	{
+		// Check size
+		if (mc.getSize() > 256)
 		{
 			// Check for header text using official signature string
 			if (memcmp(mc.getData(), "SNES-SPC700 Sound File Data", 27) == 0)
@@ -666,4 +845,49 @@ public:
 	}
 };
 
+class VGMDataFormat : public EntryDataFormat
+{
+public:
+	VGMDataFormat() : EntryDataFormat("gme_vgm") {};
+	~VGMDataFormat() {}
+
+	int isThisFormat(MemChunk& mc)
+	{
+		// Check size
+		if (mc.getSize() > 64)
+		{
+			// Check for header text (kind of a weak test)
+			if (memcmp(mc.getData(), "Vgm ", 4) == 0)
+				return EDF_TRUE;
+		}
+		return EDF_FALSE;
+	}
+};
+
+#define GZIP_SIGNATURE 0x1F8B0800
+#include "Compression.h"
+class VGZDataFormat : public EntryDataFormat
+{
+public:
+	VGZDataFormat() : EntryDataFormat("gme_vgz") {};
+	~VGZDataFormat() {}
+
+	int isThisFormat(MemChunk& mc)
+	{
+		// Check size
+		if (mc.getSize() > 64)
+		{
+			// Check for GZip header first
+			if (READ_B32(mc, 0) == GZIP_SIGNATURE)
+			{
+				// Extract, then check for vgm signature
+				MemChunk tmp;
+				if (Compression::GZipInflate(mc, tmp) &&
+					tmp.getSize() > 64 && memcmp(tmp.getData(), "Vgm ", 4) == 0)
+					return EDF_TRUE;
+			}
+		}
+		return EDF_FALSE;
+	}
+};
 #endif //AUDIOFORMATS_H

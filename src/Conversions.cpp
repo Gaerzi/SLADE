@@ -301,9 +301,9 @@ bool Conversions::musToMidi(MemChunk& in, MemChunk& out)
  * Converts MIDI-like music data [in] to midi, written to [out],
  * using ZDoom MIDI system
  *******************************************************************/
-bool Conversions::zmusToMidi(MemChunk& in, MemChunk& out)
+bool Conversions::zmusToMidi(MemChunk& in, MemChunk& out, int subsong, int * num_tracks)
 {
-	return zmus2mid(in, out);
+	return zmus2mid(in, out, subsong, num_tracks);
 }
 
 /* Conversions::vocToWav

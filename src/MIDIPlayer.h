@@ -45,6 +45,7 @@ public:
 	bool	initFluidsynth();
 	bool	reloadSoundfont();
 	bool	openFile(string filename);
+	bool	openData(MemChunk &mc);
 	bool	play();
 	bool	pause();
 	bool	stop();

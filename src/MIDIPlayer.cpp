@@ -199,6 +199,30 @@ bool MIDIPlayer::openFile(string filename)
 		return false;
 }
 
+/* MIDIPlayer::openData
+ * Opens the MIDI data contained in [mc] for playback. Returns true if
+ * successful, false otherwise
+ *******************************************************************/
+bool MIDIPlayer::openData(MemChunk &mc)
+{
+	if (!fs_initialised)
+		return false;
+
+	// Delete+Recreate player
+	delete_fluid_player(fs_player);
+	fs_player = NULL;
+	fs_player = new_fluid_player(fs_synth);
+
+	// Open midi
+	if (fs_player)
+	{
+		fluid_player_add_mem(fs_player, mc.getData(), mc.getSize());
+		return true;
+	}
+	else
+		return false;
+}
+
 /* MIDIPlayer::play
  * Begins playback of the currently loaded MIDI stream. Returns true
  * if successful, false otherwise
