@@ -1,6 +1,5 @@
 
-#ifndef __MAIN_H__
-#define __MAIN_H__
+#pragma once
 
 #ifdef _WINDOWS
 #include <windows.h>
@@ -16,6 +15,8 @@ typedef __int32 int32_t;
 typedef unsigned __int32 uint32_t;
 typedef __int64 int64_t;
 typedef unsigned __int64 uint64_t;
+#else
+#include <stdint.h>
 #endif
 
 // String stuff
@@ -27,7 +28,7 @@ typedef wxString string;
 
 // Macro to convert a wxString to a c string
 #define CHR(s) (static_cast<const char*>((s).ToAscii()))
-
+#define UTF8(s) (static_cast<const char*>((s).c_str()))
 
 // Vectors
 #include <vector>
@@ -75,24 +76,6 @@ typename M::mapped_type findInMap(M& m, const typename M::key_type& k, typename 
 #include <wx/log.h>
 #define LOG_MESSAGE(level, ...) if (Global::log_verbosity >= level) wxLogMessage(__VA_ARGS__)
 
-// OpenGL
-#ifdef __WXMSW__
-// Windows GL headers
-#include "glew/glew.h"	// Use built-in GLEW so we don't need any extra dlls
-#include <gl/GL.h>
-#include <gl/GLU.h>
-#elif __APPLE__
-// OSX GL headers
-#include <GL/glew.h>
-#include <OpenGL/gl.h>
-#include <OpenGL/glu.h>
-#else
-// Unix GL headers
-#include <GL/glew.h>
-#include <GL/gl.h>
-#include <GL/glu.h>
-#endif
-
 // File handling
 #include <wx/file.h>
 
@@ -131,5 +114,3 @@ enum MapTypes
 	MAP_UDMF,
 	MAP_UNKNOWN,	// Needed for maps in zip archives
 };
-
-#endif //__MAIN_H__
