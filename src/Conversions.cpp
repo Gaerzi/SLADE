@@ -738,39 +738,63 @@ uint16_t counters[128] =
 	 276,  269,  261,  253,  246,  239,  232,  226,
 	 219,  213,  207,  201,  195,  190,  184,  179
 };
-bool Conversions::spkSndToWav(MemChunk& in, MemChunk& out)
+bool Conversions::spkSndToWav(MemChunk& in, MemChunk& out, bool audioT)
 {
 	// --- Read Doom sound ---
+	// -- Also AudioT sound --
+
+	size_t minsize = 4 + audioT ? 3 : 0;
+	if (in.getSize() < minsize)
+	{
+		Global::error = "Invalid PC Speaker Sound";
+		return false;
+	}
 
 	// Read doom sound header
 	spksnd_header_t header;
 	in.seek(0, SEEK_SET);
 	in.read(&header, 4);
+	size_t numsamples;
 
 	// Format checks
-	if (header.zero != 0)  	// Check for magic number
+	if (audioT)
 	{
-		Global::error = "Invalid Doom PC Speaker Sound";
-		return false;
+		numsamples = READ_L32(in, 0);
+		uint16_t priority;
+		in.read(&priority, 2);
+		if (in.getSize() < 6 + numsamples)
+		{
+			Global::error = "Invalid AudioT PC Speaker Sound";
+			return false;
+		}
 	}
-	if (header.samples > (in.getSize() - 4) || header.samples <= 4)  	// Check for sane values
+	else
 	{
-		Global::error = "Invalid Doom PC Speaker Sound";
-		return false;
+		if (header.zero != 0)  	// Check for magic number
+		{
+			Global::error = "Invalid Doom PC Speaker Sound";
+			return false;
+		}
+		if (header.samples > (in.getSize() - 4) || header.samples <= 4)  	// Check for sane values
+		{
+			Global::error = "Invalid Doom PC Speaker Sound";
+			return false;
+		}
+		numsamples = header.samples;
 	}
 
 	// Read samples
-	uint8_t* osamples = new uint8_t[header.samples];
-	uint8_t* nsamples = new uint8_t[header.samples*FACTOR];
-	in.read(osamples, header.samples);
+	uint8_t* osamples = new uint8_t[numsamples];
+	uint8_t* nsamples = new uint8_t[numsamples*FACTOR];
+	in.read(osamples, numsamples);
 
 	int sign = -1;
 	uint32_t phase_tic = 0;
 
 	// Convert counter values to sample values
-	for (int s = 0; s < header.samples; ++s)
+	for (int s = 0; s < numsamples; ++s)
 	{
-		if (osamples[s] > 127)
+		if (osamples[s] > 127 && !audioT)
 		{
 			wxLogMessage("Invalid PC Speaker counter value: %d > 127", osamples[s]);
 			delete[] osamples;
@@ -781,7 +805,7 @@ bool Conversions::spkSndToWav(MemChunk& in, MemChunk& out)
 		{
 			// First, convert counter value to frequency in Hz
 			//double f = FREQ / (double)counters[osamples[s]];
-			uint32_t tone = counters[osamples[s]];
+			uint32_t tone = audioT ? osamples[s] * 60 : counters[osamples[s]];
 			uint32_t phase_length = (tone * RATE) / (2 * FREQ);
 
 			// Then write a bunch of samples.
@@ -815,7 +839,7 @@ bool Conversions::spkSndToWav(MemChunk& in, MemChunk& out)
 	// Setup data header
 	char did[4] = { 'd', 'a', 't', 'a' };
 	memcpy(&wdhdr.id, &did, 4);
-	wdhdr.size = header.samples * FACTOR;
+	wdhdr.size = numsamples * FACTOR;
 
 	// Setup fmt chunk
 	char fid[4] = { 'f', 'm', 't', ' ' };
@@ -838,7 +862,7 @@ bool Conversions::spkSndToWav(MemChunk& in, MemChunk& out)
 	out.write("WAVE", 4);
 	out.write(&fmtchunk, sizeof(wav_fmtchunk_t));
 	out.write(&wdhdr, 8);
-	out.write(nsamples, header.samples * FACTOR);
+	out.write(nsamples, numsamples * FACTOR);
 
 	// Ensure data ends on even byte boundary
 	if (header.samples % 2 != 0)

@@ -271,6 +271,8 @@ void EntryDataFormat::initBuiltinFormats()
 	new WolfSoundDataFormat();
 	new DoomMacSoundDataFormat();
 	new DoomPCSpeakerDataFormat();
+	new AudioTPCSoundDataFormat();
+	new AudioTAdlibSoundDataFormat();
 	new JaguarDoomSoundDataFormat();
 	new VocDataFormat();
 	new AYDataFormat();

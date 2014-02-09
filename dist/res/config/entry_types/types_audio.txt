@@ -353,18 +353,36 @@ entry_types
 		format = imf;
 		reliability = 120;
 		export_ext = "imf";
-		editor = audio;
+		//editor = audio;
 	}
 	
 	snd_wolf : sound
 	{
-		name = "Sound (Wolf3D Format)";
+		name = "Sound (Wolf3D PCM)";
 		format = snd_wolf;
 		match_name = "SND0*";
 		match_archive = "archive_wolf";
 		reliability = 10;
 		export_ext = "swp";
 		editor = audio;
+	}
+	
+	snd_audiot_pc : sound
+	{
+		name = "Sound (AudioT PC FX)";
+		format = snd_audiot_pc;
+		reliability = 10;
+		export_ext = "tpc";
+		editor = audio;
+	}
+	
+	snd_audiot_adlib : sound
+	{
+		name = "Sound (AudioT Adlib FX)";
+		format = snd_audiot_adlib;
+		reliability = 10;
+		export_ext = "tad";
+		//editor = audio;
 	}
 	
 	// This is used to interpret a raw sample

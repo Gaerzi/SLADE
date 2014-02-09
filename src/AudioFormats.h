@@ -640,6 +640,69 @@ public:
 	}
 };
 
+class AudioTPCSoundDataFormat : public EntryDataFormat
+{
+public:
+	AudioTPCSoundDataFormat() : EntryDataFormat("snd_audiot_pc") {};
+	~AudioTPCSoundDataFormat() {}
+
+	int isThisFormat(MemChunk& mc)
+	{
+		size_t size = mc.getSize();
+		if (size > 8)
+		{
+			size_t nsamples = READ_L32(mc, 0);
+			if (size < (nsamples + 9)
+				&& size > (nsamples + 6)
+				&& mc[nsamples+6] == 0)
+				return EDF_TRUE;
+			// Hack #1: last PC sound in Wolf3D/Spear carries a Muse end marker
+			else if (size == (nsamples + 11)
+				&& (mc[nsamples+7] == '!')
+				&& (mc[nsamples+8] == 'I')
+				&& (mc[nsamples+9] == 'D')
+				&& (mc[nsamples+10] =='!'))
+				return EDF_TRUE;
+			// Hack #2: Rise of the Triad's PCSP53
+			else if (size == 150 && nsamples == 142 && 
+				mc[147] == 156 && mc[148] == 157 && mc[149] == 97)
+				return EDF_TRUE;
+		}
+		return EDF_FALSE;
+	}
+};
+
+class AudioTAdlibSoundDataFormat : public EntryDataFormat
+{
+public:
+	AudioTAdlibSoundDataFormat() : EntryDataFormat("snd_audiot_adlib") {};
+	~AudioTAdlibSoundDataFormat() {}
+
+	int isThisFormat(MemChunk& mc)
+	{
+		size_t size = mc.getSize();
+		if (size > 24)
+		{
+			// Octave block value must be less than 8
+			if (mc[22] > 7)
+				return EDF_FALSE;
+			size_t nsamples = READ_L32(mc, 0);
+			if (size >= (nsamples + 24) && (mc[size-1] == 0))
+				return EDF_TRUE;
+			// Hack #1: last Adlib sound in Wolf3D/Spear carries a Muse end marker
+			else if (size >= nsamples + 28 &&
+				mc[size-1] == '!' && mc[size-2] == 'D' && 
+				mc[size-3] == 'I' && mc[size-4] == '!')
+				return EDF_TRUE;
+			// Hack #2: Rise of the Triad's ADLB53
+			else if (size == 166 && nsamples == 142 &&
+				mc[163] == 7 && mc[164] == 7 && mc[165] == 6)
+				return EDF_TRUE;
+		}
+		return EDF_FALSE;
+	}
+};
+
 // Blood SFX+RAW format
 class BloodSFXDataFormat : public EntryDataFormat
 {
