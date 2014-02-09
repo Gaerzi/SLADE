@@ -29,7 +29,6 @@
  *******************************************************************/
 #include "Main.h"
 #include "Archive.h"
-#include "MathStuff.h"
 #include "Conversions.h"
 #include "ArchiveEntry.h"
 #include "mus2mid/mus2mid.h"
@@ -710,12 +709,16 @@ bool Conversions::gmidToMidi(MemChunk& in, MemChunk& out)
 
 /* Conversions::spkSndToWav
  * Converts Doom PC speaker sound data [in] to wav format, written 
- * to [out]
+ * to [out]. This code is partly adapted from info found on
+ * http://www.shikadi.net/moddingwiki/AudioT_Format and
+ * http://www.shikadi.net/moddingwiki/Inverse_Frequency_Sound_format 
+ *
  *******************************************************************/
 #define ORIG_RATE 140.0
 #define FACTOR 315	// 315*140 = 44100
-#define FREQ 1193170.0
+#define FREQ 1193181.0
 #define RATE (ORIG_RATE * FACTOR)
+#define PC_VOLUME 20
 uint16_t counters[128] =
 {
 	   0, 6818, 6628, 6449, 6279, 6087, 5906, 5736,
@@ -761,6 +764,9 @@ bool Conversions::spkSndToWav(MemChunk& in, MemChunk& out)
 	uint8_t* nsamples = new uint8_t[header.samples*FACTOR];
 	in.read(osamples, header.samples);
 
+	int sign = -1;
+	uint32_t phase_tic = 0;
+
 	// Convert counter values to sample values
 	for (int s = 0; s < header.samples; ++s)
 	{
@@ -774,21 +780,31 @@ bool Conversions::spkSndToWav(MemChunk& in, MemChunk& out)
 		if (osamples[s] > 0)
 		{
 			// First, convert counter value to frequency in Hz
-			double f = FREQ / (double)counters[osamples[s]];
-			//double f = FREQ / (440.0 * pow((double)2.0, (96-osamples[s])/24));
+			//double f = FREQ / (double)counters[osamples[s]];
+			uint32_t tone = counters[osamples[s]];
+			uint32_t phase_length = (tone * RATE) / (2 * FREQ);
 
-			// Then write a bunch of samples because WAVs at 140 Hz
-			// just plain don't work at all -- I know, I tried.
+			// Then write a bunch of samples.
 			for (int i = 0; i < FACTOR; ++i)
 			{
 				// Finally, convert frequency into sample value
 				int pos = (s*FACTOR) + i;
-				double time   = (double)pos/(double)RATE;
-				double sample = 1.0 + sin(time * 2.0 * PI * f);
-				nsamples[pos] = (uint8_t)(sample*128.0);
+				//double time   = (double)pos/(double)RATE;
+				//double sample = 1.0 + sin(time * 2.0 * PI * f);
+				//nsamples[pos] = (uint8_t)(sample*128.0);
+				nsamples[pos] = 128 + sign*PC_VOLUME;
+				if (phase_tic++ >= phase_length)
+				{
+					sign = -sign;
+					phase_tic = 0;
+				}
 			}
 		}
-		else memset(nsamples + (s*FACTOR), 0, FACTOR);
+		else
+		{
+			memset(nsamples + (s*FACTOR), 128, FACTOR);
+			phase_tic = 0;
+		}
 	}
 
 	// --- Write WAV ---
@@ -833,3 +849,4 @@ bool Conversions::spkSndToWav(MemChunk& in, MemChunk& out)
 
 	return true;
 }
+
