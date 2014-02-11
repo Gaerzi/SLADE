@@ -3224,7 +3224,7 @@ static int abc_MIDI_drum(const char *p, ABCHANDLE *h)
 	}
 	*q = '\0';
 	q = h->drumins;
-	for( i = 0; i<n; i++ ) {
+	for( i = 0; i<n && i<40; i++ ) {
 		if( h->drum[i*2] == 'd' ) {
 			while( isspace(*p) ) p++;
 			if( !isdigit(*p) ) {
@@ -3238,7 +3238,7 @@ static int abc_MIDI_drum(const char *p, ABCHANDLE *h)
 		else q[i] = 0;
 	}
 	q = h->drumvol;
-	for( i = 0; i<n; i++ ) {
+	for( i = 0; i<n && i<40; i++ ) {
 		if( h->drum[i*2] == 'd' ) {
 			while( isspace(*p) ) p++;
 			if( !isdigit(*p) ) {

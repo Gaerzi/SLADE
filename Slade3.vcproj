@@ -572,6 +572,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\OPLPlayer.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\OPLPlayer.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\SAction.cpp"
 				>
 			</File>
@@ -2459,6 +2467,22 @@
 				</File>
 				<File
 					RelativePath=".\src\zreaders\music_mus_midiout.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\src\zreaders\music_opl3.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\src\zreaders\music_opl3.h"
+					>
+				</File>
+				<File
+					RelativePath=".\src\zreaders\music_opl_song.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\src\zreaders\music_opl_song.h"
 					>
 				</File>
 				<File

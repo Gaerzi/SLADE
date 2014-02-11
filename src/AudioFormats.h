@@ -307,7 +307,7 @@ public:
 class IMFDataFormat : public EntryDataFormat
 {
 public:
-	IMFDataFormat() : EntryDataFormat("imf") {};
+	IMFDataFormat() : EntryDataFormat("opl_imf") {};
 	~IMFDataFormat() {}
 
 	int isThisFormat(MemChunk& mc)
@@ -322,6 +322,55 @@ public:
 			{
 				return EDF_TRUE;
 			}
+		}
+		return EDF_FALSE;
+	}
+};
+
+class IMFRawDataFormat : public EntryDataFormat
+{
+public:
+	IMFRawDataFormat() : EntryDataFormat("opl_imf_raw") {};
+	~IMFRawDataFormat() {}
+
+	int isThisFormat(MemChunk& mc)
+	{
+		size_t size = mc.getSize();
+		// Check size
+		if (size > 94)
+		{
+			// Check data size info
+			size_t datasize = READ_L16(mc, 0);
+			if (datasize + 90 != size)
+				return EDF_FALSE;
+
+			// First index command is writing 0 on register 0
+			if (READ_L16(mc, 2) != 0)
+				return EDF_FALSE;
+
+			// Check data: uint8_t register, uint8_t data, uint16_t delay
+			for (size_t i = 6; i < MIN(datasize, 162); i+=4)
+			{
+				uint8_t reg = mc[i];
+				uint8_t rega = reg & 0xE0, regb = reg & 0x0F;
+				if (rega >= 0xA0 && rega <= 0xC0)
+				{
+					if (regb > 8 && reg != 0xBD)
+						return EDF_FALSE;
+				}
+				else if ((rega >= 0x20 && rega <= 0x80) || rega == 0xE0)
+				{
+					if (regb > 5 && reg != 0x48 && reg != 0x68 && reg != 0x88)
+						return EDF_FALSE;
+				}
+				else if (rega == 0)
+				{
+					if (regb != 0 && regb != 4 && regb != 5 && regb != 8)
+						return false;
+				}
+			}
+			// Figure that's probably good enough
+			return EDF_MAYBE;
 		}
 		return EDF_FALSE;
 	}
@@ -643,7 +692,7 @@ public:
 class AudioTPCSoundDataFormat : public EntryDataFormat
 {
 public:
-	AudioTPCSoundDataFormat() : EntryDataFormat("snd_audiot_pc") {};
+	AudioTPCSoundDataFormat() : EntryDataFormat("snd_audiot") {};
 	~AudioTPCSoundDataFormat() {}
 
 	int isThisFormat(MemChunk& mc)
@@ -675,7 +724,7 @@ public:
 class AudioTAdlibSoundDataFormat : public EntryDataFormat
 {
 public:
-	AudioTAdlibSoundDataFormat() : EntryDataFormat("snd_audiot_adlib") {};
+	AudioTAdlibSoundDataFormat() : EntryDataFormat("opl_audiot") {};
 	~AudioTAdlibSoundDataFormat() {}
 
 	int isThisFormat(MemChunk& mc)
@@ -683,8 +732,8 @@ public:
 		size_t size = mc.getSize();
 		if (size > 24)
 		{
-			// Octave block value must be less than 8
-			if (mc[22] > 7)
+			// Octave block value must be less than 8, sustain shouldn't be null
+			if (mc[22] > 7 || (mc[12]|mc[13])==0)
 				return EDF_FALSE;
 			size_t nsamples = READ_L32(mc, 0);
 			if (size >= (nsamples + 24) && (mc[size-1] == 0))

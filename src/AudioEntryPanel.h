@@ -11,6 +11,7 @@
 #include "sfMod/sfMod.h"
 #endif
 #include "GMEPlayer.h"
+#include "OPLPlayer.h"
 
 class AudioEntryPanel : public EntryPanel
 {
@@ -49,6 +50,7 @@ private:
 		AUTYPE_MEDIA,
 		AUTYPE_MOD,
 		AUTYPE_EMU,
+		AUTYPE_OPL,
 	};
 
 public:
@@ -64,6 +66,7 @@ public:
 	bool	openMidi(MemChunk& data, string filename);
 	bool	openMod(MemChunk& data);
 	bool	openEmu(MemChunk& data);
+	bool	openOpl(MemChunk& data);
 	bool	openMedia(string filename);
 	void	startStream();
 	void	stopStream();

@@ -116,6 +116,8 @@ AudioEntryPanel::AudioEntryPanel(wxWindow* parent) : EntryPanel(parent, "audio")
 #ifndef NOLIBMODPLUG
 	mod.setVolume(snd_volume);
 #endif
+	theGMEPlayer->setVolume(snd_volume);
+	theOPLPlayer->setVolume(snd_volume);
 
 	// Disable general entrypanel buttons
 	media_ctrl->Show(false);
@@ -227,6 +229,7 @@ bool AudioEntryPanel::open()
 #endif
 	theMIDIPlayer->stop();
 	theGMEPlayer->stop();
+	theOPLPlayer->stop();
 
 	subsong = 0;
 	num_tracks = 1;
@@ -247,6 +250,8 @@ bool AudioEntryPanel::open()
 		Conversions::doomSndToWav(mcdata, convdata);
 	else if (entry->getType()->getFormat() == "snd_speaker")	// Doom PC Speaker Sound -> WAV
 		Conversions::spkSndToWav(mcdata, convdata);
+	else if (entry->getType()->getFormat() == "snd_audiot")	// AudioT PC Speaker Sound -> WAV
+		Conversions::spkSndToWav(mcdata, convdata, true);
 	else if (entry->getType()->getFormat() == "snd_wolf")		// Wolfenstein 3D Sound -> WAV
 		Conversions::wolfSndToWav(mcdata, convdata);
 	else if (entry->getType()->getFormat() == "snd_voc")		// Creative Voice File -> WAV
@@ -271,6 +276,11 @@ bool AudioEntryPanel::open()
 		Conversions::gmidToMidi(mcdata, convdata);
 		path.SetExt("mid");
 	}
+	else if (entry->getType()->getFormat() == "opl_imf_raw")
+	{
+		Conversions::addImfHeader(mcdata, convdata);
+		path.SetExt("imf");
+	}
 	else
 		convdata.importMem(mcdata.getData(), mcdata.getSize());
 
@@ -290,6 +300,10 @@ bool AudioEntryPanel::open()
 	// Emulated format
 	else if (entry->getType()->getFormat().StartsWith("gme_"))
 		openEmu(convdata);
+
+	// OPL formats
+	else if (entry->getType()->getFormat().StartsWith("opl_"))
+		openOpl(convdata);
 
 	// Other format
 	else
@@ -481,6 +495,37 @@ bool AudioEntryPanel::openEmu(MemChunk& data)
 	return false;
 }
 
+/* AudioEntryPanel::openOpl
+* Opens a OPL file for playback
+*******************************************************************/
+bool AudioEntryPanel::openOpl(MemChunk& data)
+{
+	// Attempt to load the mod
+	if (theOPLPlayer->openData(data, 0, &num_tracks))
+	{
+		audio_type = AUTYPE_OPL;
+
+		// Enable playback controls
+		slider_volume->Enable();
+		btn_play->Enable();
+		btn_pause->Enable();
+		btn_stop->Enable();
+		setAudioDuration(theOPLPlayer->getLength());
+
+		return true;
+	}
+	else
+	{
+		// Disable playback controls
+		slider_volume->Enable();
+		btn_play->Enable();
+		btn_pause->Enable();
+		btn_stop->Enable();
+		setAudioDuration(0);
+	}
+	return false;
+}
+
 /* AudioEntryPanel::openMedia
 * Opens audio file [filename] in the wxMediaCtrl
 *******************************************************************/
@@ -528,6 +573,8 @@ void AudioEntryPanel::startStream()
 		media_ctrl->Play(); break;
 	case AUTYPE_EMU:
 		theGMEPlayer->play(); break;
+	case AUTYPE_OPL:
+		theOPLPlayer->play(); break;
 	}
 }
 
@@ -552,6 +599,8 @@ void AudioEntryPanel::stopStream()
 		media_ctrl->Pause(); break;
 	case AUTYPE_EMU:
 		theGMEPlayer->pause(); break;
+	case AUTYPE_OPL:
+		theOPLPlayer->pause(); break;
 	}
 }
 
@@ -577,6 +626,8 @@ void AudioEntryPanel::resetStream()
 		media_ctrl->Stop(); break;
 	case AUTYPE_EMU:
 		theGMEPlayer->stop(); break;
+	case AUTYPE_OPL:
+		theOPLPlayer->stop(); break;
 	}
 }
 
@@ -685,6 +736,8 @@ void AudioEntryPanel::onTimer(wxTimerEvent& e)
 		pos = media_ctrl->Tell(); break;
 	case AUTYPE_EMU:
 		pos = theGMEPlayer->getPosition(); break;
+	case AUTYPE_OPL:
+		pos = theOPLPlayer->getPosition(); break;
 	}
 
 	// Set slider
@@ -698,6 +751,7 @@ void AudioEntryPanel::onTimer(wxTimerEvent& e)
 	        (audio_type == AUTYPE_MOD && mod.getStatus() == sf::Sound::Stopped) ||
 #endif
 	        (audio_type == AUTYPE_EMU && theGMEPlayer->getStatus() == sf::Sound::Stopped) ||
+	        (audio_type == AUTYPE_OPL && theOPLPlayer->getStatus() == sf::Sound::Stopped) ||
 	        (audio_type == AUTYPE_MEDIA && media_ctrl->GetState() == wxMEDIASTATE_STOPPED))
 		timer_seek->Stop();
 }
@@ -723,6 +777,8 @@ void AudioEntryPanel::onSliderSeekChanged(wxCommandEvent& e)
 		media_ctrl->Seek(slider_seek->GetValue()); break;
 	case AUTYPE_EMU:
 		theGMEPlayer->setPosition(slider_seek->GetValue()); break;
+	case AUTYPE_OPL:
+		theOPLPlayer->setPosition(slider_seek->GetValue()); break;
 	}
 }
 
@@ -749,5 +805,7 @@ void AudioEntryPanel::onSliderVolumeChanged(wxCommandEvent& e)
 #endif
 	case AUTYPE_EMU:
 		theGMEPlayer->setVolume(snd_volume); break;
+	case AUTYPE_OPL:
+		theOPLPlayer->setVolume(snd_volume); break;
 	}
 }

@@ -30,6 +30,7 @@
 #include "Main.h"
 #include "WolfArchive.h"
 #include "SplashWindow.h"
+#include "Conversions.h"
 #include <wx/log.h>
 #include <wx/filename.h>
 #include <wx/dir.h>
@@ -202,37 +203,12 @@ void addIMFHeader(ArchiveEntry* entry)
 		return;
 
 	MemChunk& mc = entry->getMCData();
-	if (mc.getSize() == 0)
-		return;
+	MemChunk convdata;
 
-	uint32_t newsize = mc.getSize() + 9;
-	uint8_t start = 0;
-	if (mc[0] | mc[1])
+	if (Conversions::addImfHeader(mc, convdata))
 	{
-		// non-zero start
-		newsize += 2;
-		start = 2;
+		entry->importMemChunk(convdata);
 	}
-	else newsize += 4;
-
-	uint8_t* newdata = new uint8_t[newsize];
-	newdata[0] = 'A'; newdata[1] = 'D'; newdata[2] = 'L'; newdata[3] = 'I'; newdata[4] = 'B';
-	newdata[5] = 1; newdata[6] = 0; newdata[7] = 0; newdata[8] = 1;
-	if (mc[0] | mc[1])
-	{
-		newdata[9] = mc[0]; newdata[10] = mc[1]; newdata[11] = 0; newdata[12] = 0;
-	}
-	else
-	{
-		newdata[9] = 0; newdata[10] = 0; newdata[11] = 0; newdata[12] = 0;
-	}
-	for (size_t i = 0; ((i + start < mc.getSize()) && (13 + i < newsize)); ++i)
-	{
-		newdata[13 + i] = mc[i+start];
-	}
-	//mc.clear();
-	entry->importMem(newdata, newsize);
-	delete[] newdata;
 }
 
 /* ExpandWolfGraphLump

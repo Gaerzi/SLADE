@@ -2134,6 +2134,9 @@ bool ArchivePanel::dSndWavConvert()
 		// Or Doom Speaker sound format
 		else if (selection[a]->getType()->getFormat() == "snd_speaker")
 			worked = Conversions::spkSndToWav(selection[a]->getMCData(), wav);
+		// Or AudioT Speaker sound format
+		else if (selection[a]->getType()->getFormat() == "snd_audiot")
+			worked = Conversions::spkSndToWav(selection[a]->getMCData(), wav, true);
 		// Or Jaguar Doom sound format
 		else if (selection[a]->getType()->getFormat() == "snd_jaguar")
 			worked = Conversions::jagSndToWav(selection[a]->getMCData(), wav);
@@ -2986,6 +2989,7 @@ void ArchivePanel::onEntryListRightClick(wxListEvent& e)
 		{
 			if (selection[a]->getType()->getFormat() == "snd_doom" ||
 			        selection[a]->getType()->getFormat() == "snd_speaker" ||
+			        selection[a]->getType()->getFormat() == "snd_audiot" ||
 			        selection[a]->getType()->getFormat() == "snd_wolf" ||
 			        selection[a]->getType()->getFormat() == "snd_doom_mac" ||
 			        selection[a]->getType()->getFormat() == "snd_jaguar" ||

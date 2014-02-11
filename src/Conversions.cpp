@@ -707,6 +707,46 @@ bool Conversions::gmidToMidi(MemChunk& in, MemChunk& out)
 	return true;
 }
 
+/* Conversions::addImfHeader
+ * Automatizes this: http://zdoom.org/wiki/Using_OPL_music_in_ZDoom
+ *******************************************************************/
+bool Conversions::addImfHeader(MemChunk& in, MemChunk& out)
+{
+	if (in.getSize() == 0)
+		return false;
+
+	uint32_t newsize = in.getSize() + 9;
+	uint8_t start = 0;
+	if (in[0] | in[1])
+	{
+		// non-zero start
+		newsize += 2;
+		start = 2;
+	}
+	else newsize += 4;
+
+	out.reSize(newsize, false);
+	out[0] = 'A'; out[1] = 'D'; out[2] = 'L'; out[3] = 'I'; out[4] = 'B';
+	out[5] = 1; out[6] = 0; out[7] = 0; out[8] = 1;
+	if (in[0] | in[1])
+	{
+		out[9] = in[0]; out[10] = in[1]; out[11] = 0; out[12] = 0;
+	}
+	else
+	{
+		out[9] = 0; out[10] = 0; out[11] = 0; out[12] = 0;
+	}
+	out.seek(13, SEEK_SET);
+	in.seek(start, SEEK_SET);
+	//size_t size = MIN(in.getSize() - start, newsize - 13);
+	//return in.readMC(out, size);
+	for (size_t i = 0; ((i + start < in.getSize()) && (13 + i < newsize)); ++i)
+	{
+		out[13 + i] = in[i+start];
+	}
+	return true;
+}
+
 /* Conversions::spkSndToWav
  * Converts Doom PC speaker sound data [in] to wav format, written 
  * to [out]. This code is partly adapted from info found on
@@ -792,7 +832,7 @@ bool Conversions::spkSndToWav(MemChunk& in, MemChunk& out, bool audioT)
 	uint32_t phase_tic = 0;
 
 	// Convert counter values to sample values
-	for (int s = 0; s < numsamples; ++s)
+	for (size_t s = 0; s < numsamples; ++s)
 	{
 		if (osamples[s] > 127 && !audioT)
 		{

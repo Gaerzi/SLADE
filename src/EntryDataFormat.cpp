@@ -267,6 +267,7 @@ void EntryDataFormat::initBuiltinFormats()
 	new MODModuleDataFormat();
 	new OKTModuleDataFormat();
 	new IMFDataFormat();
+	new IMFRawDataFormat();
 	new DoomSoundDataFormat();
 	new WolfSoundDataFormat();
 	new DoomMacSoundDataFormat();

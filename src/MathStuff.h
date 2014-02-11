@@ -2,7 +2,7 @@
 #ifndef __MATHSTUFF_H__
 #define __MATHSTUFF_H__
 
-#define PI	3.1415926535897932384
+#define PI	3.14159265358979323846
 
 namespace MathStuff
 {

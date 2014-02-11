@@ -347,13 +347,22 @@ entry_types
 		editor = audio;
 	}
 	
-	imf : sound
+	opl_imf : sound
 	{
 		name = "IMF OPL File";
-		format = imf;
+		format = opl_imf;
 		reliability = 120;
 		export_ext = "imf";
-		//editor = audio;
+		editor = audio;
+	}
+	
+	opl_imf_raw : sound
+	{
+		name = "IMF OPL Data";
+		format = opl_imf_raw;
+		reliability = 60;
+		export_ext = "imf";
+		editor = audio;
 	}
 	
 	snd_wolf : sound
@@ -367,22 +376,22 @@ entry_types
 		editor = audio;
 	}
 	
-	snd_audiot_pc : sound
+	snd_audiot : sound
 	{
 		name = "Sound (AudioT PC FX)";
-		format = snd_audiot_pc;
+		format = snd_audiot;
 		reliability = 10;
 		export_ext = "tpc";
 		editor = audio;
 	}
 	
-	snd_audiot_adlib : sound
+	opl_audiot : sound
 	{
 		name = "Sound (AudioT Adlib FX)";
-		format = snd_audiot_adlib;
+		format = opl_audiot;
 		reliability = 10;
 		export_ext = "tad";
-		//editor = audio;
+		editor = audio;
 	}
 	
 	// This is used to interpret a raw sample
