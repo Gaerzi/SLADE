@@ -341,15 +341,21 @@ public:
 		{
 			// Check data size info
 			size_t datasize = READ_L16(mc, 0);
-			if (datasize + 90 != size)
+			if (datasize + 90 != size && datasize + 2 != size && datasize != 0)
 				return EDF_FALSE;
 
+			// So-called type 1 begins with data size, type 0 doesn't.
+			// So we have a type-dependent offset here
+			uint8_t tofs = datasize ? 2 : 0;
+			size_t enough = datasize ? datasize : size;
+			enough = MIN(enough, 160u+tofs);
+
 			// First index command is writing 0 on register 0
-			if (READ_L16(mc, 2) != 0)
+			if (READ_L16(mc, tofs) != 0)
 				return EDF_FALSE;
 
 			// Check data: uint8_t register, uint8_t data, uint16_t delay
-			for (size_t i = 6; i < MIN(datasize, 162); i+=4)
+			for (size_t i = 4+tofs; i < enough; i+=4)
 			{
 				uint8_t reg = mc[i];
 				uint8_t rega = reg & 0xE0, regb = reg & 0x0F;

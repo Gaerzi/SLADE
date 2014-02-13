@@ -13,7 +13,6 @@
 #define HALF_PI (PI*0.5)
 CVAR(Bool, opl_singlevoice, 0, 0)
 CVAR(Int, opl_numchips, 2, CVAR_SAVE)
-CVAR(Int, imf_rate, 700, CVAR_SAVE)
 //EXTERN_CVAR(Int, opl_core)
 
 
@@ -846,6 +845,7 @@ OPLmusicFile::OPLmusicFile (FILE *file, const uint8_t *musiccache, size_t len)
 	io = NULL;
 	io = new OPLio;
 	ScoreLen = len;
+	ImfRate = 700;
 
 	if (io == NULL)
 	{
@@ -924,7 +924,7 @@ fail:		delete[] scoredata;
 		int songlen;
 		uint8_t *max = scoredata + ScoreLen;
 		RawPlayer = IMF;
-		SamplesPerTick = OPL_SAMPLE_RATE / imf_rate;
+		SamplesPerTick = OPL_SAMPLE_RATE / ImfRate;
 
 		score = scoredata + 6;
 		// Skip track and game name
@@ -964,7 +964,8 @@ fail:		delete[] scoredata;
 		goto fail;
 	}
 
-	Restart ();
+	// This is called by the OPL player instead
+	//Restart ();
 }
 
 OPLmusicFile::~OPLmusicFile ()
@@ -1021,7 +1022,7 @@ void OPLmusicFile::Restart ()
 
 	case IMF:
 		score = scoredata + 6;
-		SamplesPerTick = OPL_SAMPLE_RATE / imf_rate;
+		SamplesPerTick = OPL_SAMPLE_RATE / ImfRate;
 
 		// Skip track and game name
 		for (int i = 2; i != 0; --i)
@@ -1396,12 +1397,13 @@ int OPLmusicFile::PlayTick ()
 	case AudioT:
 		if (score < (scoredata + sizeof(oplsound_t) + ScoreLen))
 		{
+			uint8_t block = (Octave&7)<<2;
 			if (!score[0])
-				io->OPLwriteReg (0, 0xB1, 0);
+				io->OPLwriteReg (0, 0xB1, block);
 			else
 			{
 				io->OPLwriteReg (0, 0xA0, score[0]);
-				io->OPLwriteReg (0, 0xB0, (((Octave&7)<<2)|0x20));
+				io->OPLwriteReg (0, 0xB0, (block|0x20));
 			}
 			++score;
 		}

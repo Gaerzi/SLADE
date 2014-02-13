@@ -69,6 +69,7 @@ string findFileCasing(wxFileName filename)
 			return (dir.GetNameWithSep() + found);
 		cont = dir.GetNext(&found);
 	}
+	return filename.GetFullPath();
 #endif
 }
 
@@ -238,7 +239,7 @@ void ExpandWolfGraphLump (ArchiveEntry* entry, size_t lumpnum, size_t numlumps, 
 
 	if (expanded == 0 || expanded > 65000)
 	{
-		wxLogMessage("ExpandWolfGraphLump: invalid expanded size in entry %d", lumpnum);
+		wxLogMessage("ExpandWolfGraphLump: invalid expanded size in entry %d: %d", lumpnum, expanded);
 		return;
 	}
 
@@ -1034,14 +1035,14 @@ bool WolfArchive::isWolfArchive(string filename)
 		wxFileName fn2(fn1);
 		fn1.SetName("MAPHEAD");
 		fn2.SetName("GAMEMAPS");
-		return (wxFile::Exists(fn1.GetFullPath()) && wxFile::Exists(fn2.GetFullPath()));
+		return (wxFile::Exists(findFileCasing(fn1)) && wxFile::Exists(findFileCasing(fn2)));
 	}
 	else if (fn1.GetName().MakeUpper() == "AUDIOHED" || fn1.GetName().MakeUpper() == "AUDIOT")
 	{
 		wxFileName fn2(fn1);
 		fn1.SetName("AUDIOHED");
 		fn2.SetName("AUDIOT");
-		return (wxFile::Exists(fn1.GetFullPath()) && wxFile::Exists(fn2.GetFullPath()));
+		return (wxFile::Exists(findFileCasing(fn1)) && wxFile::Exists(findFileCasing(fn2)));
 	}
 	else if (fn1.GetName().MakeUpper() == "VGAHEAD" || fn1.GetName().MakeUpper() == "VGAGRAPH"
 			 || fn1.GetName().MakeUpper() == "VGADICT")
@@ -1051,8 +1052,8 @@ bool WolfArchive::isWolfArchive(string filename)
 		fn1.SetName("VGAHEAD");
 		fn2.SetName("VGAGRAPH");
 		fn3.SetName("VGADICT");
-		return (wxFile::Exists(fn1.GetFullPath()) && wxFile::Exists(fn2.GetFullPath())
-				&& wxFile::Exists(fn3.GetFullPath()));
+		return (wxFile::Exists(findFileCasing(fn1)) && wxFile::Exists(findFileCasing(fn2))
+				&& wxFile::Exists(findFileCasing(fn3)));
 	}
 
 	// else we have to deal with a VSWAP archive, which is the only self-contained type

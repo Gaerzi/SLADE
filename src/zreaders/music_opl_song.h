@@ -336,12 +336,14 @@ public:
 	int  GetLength() { return ScoreLen; }
 	int  GetPosition() { return score - scoredata; }
 	bool SetPosition(int);
+	void SetImfRate(int rate) { if (rate) ImfRate = rate; }
 
 protected:
 	void OffsetSamples(float *buff, int count);
 
 	double NextTickIn;
 	double SamplesPerTick;
+	int ImfRate;
 	int NumChips;
 	bool Looping;
 	double LastOffset;

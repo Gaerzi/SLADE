@@ -347,7 +347,7 @@ entry_types
 		editor = audio;
 	}
 	
-	opl_imf : sound
+	opl_imf : music
 	{
 		name = "IMF OPL File";
 		format = opl_imf;
@@ -356,7 +356,7 @@ entry_types
 		editor = audio;
 	}
 	
-	opl_imf_raw : sound
+	opl_imf_raw : music
 	{
 		name = "IMF OPL Data";
 		format = opl_imf_raw;

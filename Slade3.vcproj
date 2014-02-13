@@ -2352,12 +2352,20 @@
 				>
 			</File>
 			<File
+				RelativePath=".\dist\res\imfrates.txt"
+				>
+			</File>
+			<File
 				RelativePath=".\dist\res\html\startpage.htm"
 				DeploymentContent="true"
 				>
 			</File>
 			<File
 				RelativePath=".\stuff.txt"
+				>
+			</File>
+			<File
+				RelativePath=".\dist\res\tips.txt"
 				>
 			</File>
 			<File

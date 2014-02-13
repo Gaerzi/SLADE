@@ -50,6 +50,8 @@ public:
 	bool	setVolume(int volume);
 	void	onSeek(sf::Time timeOffset);
 	bool	onGetData(sf::SoundStream::Chunk& data);
+
+	int		findImfRate(uint32_t crc32);
 };
 
 // Define for less cumbersome GMEPlayer::getInstance()

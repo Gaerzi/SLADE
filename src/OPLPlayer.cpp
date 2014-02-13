@@ -30,10 +30,13 @@
  *******************************************************************/
 #include "Main.h"
 #include "OPLPlayer.h"
+#include "Tokenizer.h"
+#include "ArchiveManager.h"
 
 /*******************************************************************
  * VARIABLES
  *******************************************************************/
+CVAR(Int, imf_rate, 700, CVAR_SAVE)
 OPLPlayer*	OPLPlayer::instance = NULL;
 
 OPLPlayer::OPLPlayer() : sf::SoundStream()
@@ -61,6 +64,7 @@ bool OPLPlayer::openData(MemChunk &mc, int subsong, int * num_tracks)
 	*num_tracks = 1;
 
 	emu = new OPLmusicFile(NULL, mc.getData(), mc.getSize());
+	emu->SetImfRate(findImfRate(mc.crc()));
 	emu->Restart();
 
 	initSound();
@@ -145,4 +149,25 @@ bool OPLPlayer::onGetData(sf::SoundStream::Chunk &data)
 void OPLPlayer::onSeek(sf::Time timeOffset)
 {
 	setPosition(timeOffset.asMilliseconds());
+}
+
+int OPLPlayer::findImfRate(size_t crc32)
+{
+	ArchiveEntry * imf_list = theArchiveManager->programResourceArchive()->entryAtPath("imfrates.txt");
+	if (imf_list)
+	{
+		Tokenizer tz;
+		string token;
+		int rate;
+		unsigned long val;
+		tz.openMem(&(imf_list->getMCData()), "imf rate list");
+		do
+		{
+			token = tz.getToken();
+			rate = tz.getInteger();
+			if (token.ToULong(&val, 16) && val == crc32)
+				return rate;
+		} while (token.length());
+	}
+	return imf_rate;
 }
