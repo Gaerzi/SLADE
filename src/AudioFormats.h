@@ -358,15 +358,15 @@ public:
 			for (size_t i = 4+tofs; i < enough; i+=4)
 			{
 				uint8_t reg = mc[i];
-				uint8_t rega = reg & 0xE0, regb = reg & 0x0F;
+				uint8_t rega = reg & 0xE0, regb = reg & 0x1F, regc = reg & 0x0F;
 				if (rega >= 0xA0 && rega <= 0xC0)
 				{
-					if (regb > 8 && reg != 0xBD)
+					if (regc > 8 && reg != 0xBD)
 						return EDF_FALSE;
 				}
 				else if ((rega >= 0x20 && rega <= 0x80) || rega == 0xE0)
 				{
-					if (regb > 5 && reg != 0x48 && reg != 0x68 && reg != 0x88)
+					if (regb > 15)
 						return EDF_FALSE;
 				}
 				else if (rega == 0)
