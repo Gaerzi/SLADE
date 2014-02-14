@@ -38,6 +38,7 @@
  * VARIABLES
  *******************************************************************/
 CVAR(Bool, dmx_padding, true, CVAR_SAVE)
+CVAR(Int, wolfsnd_rate, 7042, CVAR_SAVE)
 
 /*******************************************************************
  * STRUCTS
@@ -581,8 +582,8 @@ bool Conversions::wolfSndToWav(MemChunk& in, MemChunk& out)
 	fmtchunk.header.size = 16;
 	fmtchunk.tag = 1;
 	fmtchunk.channels = 1;
-	fmtchunk.samplerate = 7042;
-	fmtchunk.datarate = 7042;
+	fmtchunk.samplerate = wolfsnd_rate;
+	fmtchunk.datarate = wolfsnd_rate;
 	fmtchunk.blocksize = 1;
 	fmtchunk.bps = 8;
 
