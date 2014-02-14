@@ -327,12 +327,12 @@ alEffects			=	0bdh
 
 void OPLio::OPLwriteInstrument(uint32_t channel, inst_t *instr)
 {
-	OPLwriteChannel(0x40, channel, 0x3F, 0x3F);		// no volume
+	OPLwriteChannel(0x40, channel, 0, 0);		// full volume
 	OPLwriteChannel(0x20, channel, instr->mChar,    instr->cChar);
 	OPLwriteChannel(0x60, channel, instr->mAttack,  instr->cAttack);
 	OPLwriteChannel(0x80, channel, instr->mSus,     instr->cSus);
 	OPLwriteChannel(0xE0, channel, instr->mWave,    instr->cWave);
-	//OPLwriteValue  (0xC0, channel, instr->nConn | 0x30);
+	OPLwriteValue  (0xC0, channel, instr->nConn | 0x30);
 }
 
 /*
@@ -896,16 +896,19 @@ fail:		delete[] scoredata;
 		}
 		else if (((uint32_t *)scoredata)[2] == MAKE_ID(2,0,0,0))
 		{
+			bool okay = true;
 			if (scoredata[20] != 0)
 			{
 				wxLogMessage("Unsupported DOSBox Raw OPL format %d", scoredata[20]);
-				goto fail;
+				okay = false;
 			}
 			if (scoredata[21] != 0)
 			{
 				wxLogMessage("Unsupported DOSBox Raw OPL compression %d", scoredata[21]);
-				goto fail;
+				okay = false;
 			}
+			if (!okay)
+				goto fail;
 			RawPlayer = DosBox2;
 			SamplesPerTick = OPL_SAMPLE_RATE / 1000;
 			int headersize = 0x1A + scoredata[0x19];
@@ -1137,7 +1140,7 @@ bool OPLmusicFile::ServiceStreamI (int16_t *buff, int numbytes)
 			{
 				io->chips[i]->UpdateI(samples1, samplesleft);
 			}
-			//OffsetSamples(samples1, samplesleft << stereoshift);
+			OffsetSamplesI(samples1, samplesleft << stereoshift);
 			assert(NextTickIn == ticky);
 			NextTickIn -= samplesleft;
 			assert (NextTickIn >= 0);
@@ -1159,7 +1162,7 @@ bool OPLmusicFile::ServiceStreamI (int16_t *buff, int numbytes)
 						{
 							io->chips[i]->UpdateI(samples1, samplesleft);
 						}
-						//OffsetSamples(samples1, numsamples << stereoshift);
+						OffsetSamplesI(samples1, numsamples << stereoshift);
 					}
 					res = false;
 					break;
@@ -1255,6 +1258,79 @@ void OPLmusicFile::OffsetSamples(float *buff, int count)
 		}
 	}
 	LastOffset = float(offset);
+}
+
+void OPLmusicFile::OffsetSamplesI(int16_t *buff, int count)
+{
+	// Three out of four of the OPL waveforms are non-negative. Depending on
+	// timbre selection, this can cause the output waveform to tend toward
+	// very large positive values. Heretic's music is particularly bad for
+	// this. This function attempts to compensate by offseting the sample
+	// data back to around the [-1.0, 1.0] range.
+
+	int max = -32767, min = 32767, offset, step;
+	int i, ramp, largest_at = 0;
+
+	// Find max and min values for this segment of the waveform.
+	for (i = 0; i < count; ++i)
+	{
+		if (buff[i] > max)
+		{
+			max = buff[i];
+			largest_at = i;
+		}
+		if (buff[i] < min)
+		{
+			min = buff[i];
+			largest_at = i;
+		}
+	}
+	// Prefer to keep the offset at 0, even if it means a little clipping.
+	if (LastOffset == 0 && min >= -32767 && max <= 32767)
+	{
+		offset = 0;
+	}
+	else
+	{
+		offset = (max + min) / 2;
+		// If the new offset is close to 0, make it 0 to avoid making another
+		// full loop through the sample data.
+		if (abs(offset) < 128)
+		{
+			offset = 0;
+		}
+	}
+	// Ramp the offset change so there aren't any abrupt clicks in the output.
+	// If the ramp is too short, it can sound scratchy. cblood2.mid is
+	// particularly unforgiving of short ramps.
+	if (count >= 128)
+	{
+		ramp = 128;
+		step = (offset - LastOffset) / 128;
+	}
+	else
+	{
+		ramp = MIN(count, MAX(49, largest_at));
+		step = (offset - LastOffset) / ramp;
+	}
+	offset = LastOffset;
+	i = 0;
+	if (step != 0)
+	{
+		for (; i < ramp; ++i)
+		{
+			buff[i] = buff[i] - offset;
+			offset += step;
+		}
+	}
+	if (offset != 0)
+	{
+		for (; i < count; ++i)
+		{
+			buff[i] = buff[i] - offset;
+		}
+	}
+	LastOffset = offset;
 }
 
 int OPLmusicFile::PlayTick ()
@@ -1399,14 +1475,16 @@ int OPLmusicFile::PlayTick ()
 		{
 			uint8_t block = (Octave&7)<<2;
 			if (!score[0])
-				io->OPLwriteReg (0, 0xB1, block);
+				io->OPLwriteReg (0, 0xB0, block);
 			else
 			{
+				io->OPLwriteReg (0, 0x40, 0);
 				io->OPLwriteReg (0, 0xA0, score[0]);
 				io->OPLwriteReg (0, 0xB0, (block|0x20));
 			}
 			++score;
 		}
+		return 1;
 	}
 	return 0;
 }

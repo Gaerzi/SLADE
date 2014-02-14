@@ -302,8 +302,8 @@ public:
 	OPLmusicFile(const OPLmusicFile *source, const char *filename);
 	~OPLmusicFile();
 
-	uint8_t *score;		// FIXME:
-	uint8_t *scoredata;	// Do they need to be signed?
+	uint8_t *score;
+	uint8_t *scoredata;
 	int playingcount;
 	OPLdata driverdata;
 	OPLio *io;
@@ -340,6 +340,7 @@ public:
 
 protected:
 	void OffsetSamples(float *buff, int count);
+	void OffsetSamplesI(int16_t *buff, int count);
 
 	double NextTickIn;
 	double SamplesPerTick;

@@ -137,20 +137,29 @@ size_t WolfConstant(int name, size_t numlumps)
 string searchIMFName(MemChunk& mc)
 {
 	string ret = "";
-	size_t pos = READ_L16(mc, 0) + 4;
-	if (mc.getSize() >= pos + 86)
+	if (mc.getSize() > 90)
 	{
-		for (size_t i = 0; i < 16; ++i)
+		size_t counter = mc.getSize() - 1;
+		size_t stop = counter - 88;
+		while (counter > stop)
 		{
-			if ((mc[pos+i] >= 'A' && mc[pos+i] <= 'Z') || mc[pos+i] == '-' ||
-				(mc[pos+i] >= '0' && mc[pos+i] <= '9') || mc[pos+i] == '!')
-				ret += mc[pos+i];
-			else if (mc[pos+i] == 0)
+			if (mc[counter] == 'F' && mc[counter - 1] == 'M'
+					&& mc[counter - 2] == 'I' && mc[counter - 3] == '.')
 			{
-				if (i != 0)
-					ret += ".IMF";
+				size_t start = counter - 4;
+				while ((mc[start] >= 'A' && mc[start] <= 'Z') || mc[start] == '-'
+						|| (mc[start] >= '0' && mc[start] <= '9') || mc[start] == '!')
+				{
+					start--;
+				}
+				if (counter - start < 13 && mc[start] == '\\')
+				{
+					for (size_t i = 1; start + i <= counter; ++i)
+						ret += mc[start + i];
+				}
 				break;
 			}
+			counter--;
 		}
 	}
 	return ret;
