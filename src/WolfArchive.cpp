@@ -41,7 +41,7 @@
 
 /* findFileCasing
  * Returns the full path of a given file with the correct casing for
- * the filename. On Windws systems, filenames are case-insensitive,
+ * the filename. On Windows systems, filenames are case-insensitive,
  * so the source filename is returned as-is. On other systems, we
  * instead take only the path (assumed to be correct, since we got
  * it from attempting to open a file that does exist) and then we
@@ -57,7 +57,7 @@ string findFileCasing(wxFileName filename)
 	wxDir dir(path);
 	if (!dir.IsOpened())
 	{
-		wxLogMessage("Error: No directory at path %s. This shouldn't happen.");
+		wxLogMessage("Error: No directory at path %s. This shouldn't happen.", path);
 		return "";
 	}
 
