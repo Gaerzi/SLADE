@@ -327,8 +327,8 @@ alEffects			=	0bdh
 
 void OPLio::OPLwriteInstrument(uint32_t channel, inst_t *instr)
 {
-	OPLwriteChannel(0x40, channel, 0, 0);		// full volume
 	OPLwriteChannel(0x20, channel, instr->mChar,    instr->cChar);
+	OPLwriteChannel(0x40, channel, instr->mScale,   instr->cScale);
 	OPLwriteChannel(0x60, channel, instr->mAttack,  instr->cAttack);
 	OPLwriteChannel(0x80, channel, instr->mSus,     instr->cSus);
 	OPLwriteChannel(0xE0, channel, instr->mWave,    instr->cWave);
