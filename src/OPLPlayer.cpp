@@ -39,10 +39,22 @@
 CVAR(Int, imf_rate, 700, CVAR_SAVE)
 OPLPlayer*	OPLPlayer::instance = NULL;
 
+
+// The OPL emulator outputs to floating point, but SMFL is only 
+// compatible with 16-bit ints, so we need to convert them.
+inline int16_t to_int16(float f)
+{
+	int32_t tmp = f * 32000;
+	if (tmp >  32767) tmp =  32767;
+	if (tmp < -32767) tmp = -32767;
+    return (int16_t)tmp;
+}
+
+
 OPLPlayer::OPLPlayer() : sf::SoundStream()
 {
 	emu = NULL;
-	buffer = new short[OPL_BUFFERSIZE];
+	buffer = new float[OPL_BUFFERSIZE];
 }
 
 OPLPlayer::~OPLPlayer()
@@ -138,10 +150,19 @@ bool OPLPlayer::setVolume(int volume)
 
 bool OPLPlayer::onGetData(sf::SoundStream::Chunk &data)
 {
-	emu->ServiceStreamI(buffer, OPL_BUFFERSIZE*2);
+	float* fbuffer = (float*)buffer;
+	int16_t* ibuffer = (int16_t*)buffer;
+
+	emu->ServiceStream(fbuffer, OPL_BUFFERSIZE*sizeof(float));
+
+
+	for (size_t i = 0; i < OPL_BUFFERSIZE; ++i)
+	{
+		ibuffer[i] = to_int16(fbuffer[i]);
+	}
 
 	data.sampleCount = OPL_BUFFERSIZE;
-	data.samples     = buffer;
+	data.samples     = ibuffer;
 
 	return true;
 }
@@ -160,7 +181,7 @@ int OPLPlayer::findImfRate(size_t crc32)
 		string token;
 		int rate;
 		unsigned long val;
-		tz.openMem(&(imf_list->getMCData()), "imf rate list");
+		tz.openMem(&(imf_list->getMCData()), "imfrates.txt");
 		do
 		{
 			token = tz.getToken();

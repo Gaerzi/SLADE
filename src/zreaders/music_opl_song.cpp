@@ -958,7 +958,7 @@ fail:		delete[] scoredata;
 		Octave = sound->octave;
 		io->OPLwriteInstrument(0, &sound->inst);
 		Note = false;
-		ScoreLen = len - sizeof(oplsound_t);
+		ScoreLen = len;
 		score = scoredata + sizeof(oplsound_t);
 	}
 	else
@@ -1050,7 +1050,7 @@ void OPLmusicFile::Restart ()
 bool OPLmusicFile::ServiceStream (void *buff, int numbytes)
 {
 	float *samples1 = (float *)buff;
-	int stereoshift = (int)(FullPan | /*io->IsOPL3*/1);
+	int stereoshift = 1;//(int)(FullPan | /*io->IsOPL3*/1);
 	int numsamples = numbytes / (sizeof(float) << stereoshift);
 	bool prevEnded = false;
 	bool res = true;
@@ -1093,76 +1093,6 @@ bool OPLmusicFile::ServiceStream (void *buff, int numbytes)
 							io->chips[i]->Update(samples1, samplesleft);
 						}
 						OffsetSamples(samples1, numsamples << stereoshift);
-					}
-					res = false;
-					break;
-				}
-				else
-				{
-					// Avoid infinite loops from songs that do nothing but end
-					prevEnded = true;
-					Restart ();
-				}
-			}
-			else
-			{
-				prevEnded = false;
-				io->WriteDelay(next);
-				NextTickIn += SamplesPerTick * next;
-				assert (NextTickIn >= 0);
-				MLtime += next;
-			}
-		}
-	}
-	return res;
-}
-
-bool OPLmusicFile::ServiceStreamI (int16_t *buff, int numbytes)
-{
-	int16_t *samples1 = buff;
-	int stereoshift = (int)(FullPan | /*io->IsOPL3*/1);
-	int numsamples = numbytes / (sizeof(int16_t) << stereoshift);
-	bool prevEnded = false;
-	bool res = true;
-
-	memset(buff, 0, numbytes);
-
-	while (numsamples > 0)
-	{
-		double ticky = NextTickIn;
-		int tick_in = int(NextTickIn);
-		int samplesleft = MIN(numsamples, tick_in);
-		size_t i;
-
-		if (samplesleft > 0)
-		{
-			for (i = 0; i < io->NumChips; ++i)
-			{
-				io->chips[i]->UpdateI(samples1, samplesleft);
-			}
-			OffsetSamplesI(samples1, samplesleft << stereoshift);
-			assert(NextTickIn == ticky);
-			NextTickIn -= samplesleft;
-			assert (NextTickIn >= 0);
-			numsamples -= samplesleft;
-			samples1 += samplesleft << stereoshift;
-		}
-		
-		if (NextTickIn < 1)
-		{
-			int next = PlayTick();
-			assert(next >= 0);
-			if (next == 0)
-			{ // end of song
-				if (!Looping || prevEnded)
-				{
-					if (numsamples > 0)
-					{
-						for (i = 0; i < io->NumChips; ++i)
-						{
-							io->chips[i]->UpdateI(samples1, samplesleft);
-						}
-						OffsetSamplesI(samples1, numsamples << stereoshift);
 					}
 					res = false;
 					break;
@@ -1260,88 +1190,16 @@ void OPLmusicFile::OffsetSamples(float *buff, int count)
 	LastOffset = float(offset);
 }
 
-void OPLmusicFile::OffsetSamplesI(int16_t *buff, int count)
-{
-	// Three out of four of the OPL waveforms are non-negative. Depending on
-	// timbre selection, this can cause the output waveform to tend toward
-	// very large positive values. Heretic's music is particularly bad for
-	// this. This function attempts to compensate by offseting the sample
-	// data back to around the [-1.0, 1.0] range.
-
-	int max = -32767, min = 32767, offset, step;
-	int i, ramp, largest_at = 0;
-
-	// Find max and min values for this segment of the waveform.
-	for (i = 0; i < count; ++i)
-	{
-		if (buff[i] > max)
-		{
-			max = buff[i];
-			largest_at = i;
-		}
-		if (buff[i] < min)
-		{
-			min = buff[i];
-			largest_at = i;
-		}
-	}
-	// Prefer to keep the offset at 0, even if it means a little clipping.
-	if (LastOffset == 0 && min >= -32767 && max <= 32767)
-	{
-		offset = 0;
-	}
-	else
-	{
-		offset = (max + min) / 2;
-		// If the new offset is close to 0, make it 0 to avoid making another
-		// full loop through the sample data.
-		if (abs(offset) < 128)
-		{
-			offset = 0;
-		}
-	}
-	// Ramp the offset change so there aren't any abrupt clicks in the output.
-	// If the ramp is too short, it can sound scratchy. cblood2.mid is
-	// particularly unforgiving of short ramps.
-	if (count >= 128)
-	{
-		ramp = 128;
-		step = (offset - LastOffset) / 128;
-	}
-	else
-	{
-		ramp = MIN(count, MAX(49, largest_at));
-		step = (offset - LastOffset) / ramp;
-	}
-	offset = LastOffset;
-	i = 0;
-	if (step != 0)
-	{
-		for (; i < ramp; ++i)
-		{
-			buff[i] = buff[i] - offset;
-			offset += step;
-		}
-	}
-	if (offset != 0)
-	{
-		for (; i < count; ++i)
-		{
-			buff[i] = buff[i] - offset;
-		}
-	}
-	LastOffset = offset;
-}
-
 int OPLmusicFile::PlayTick ()
 {
 	uint8_t reg, data;
 	uint16_t delay;
+	uint8_t * ScoreEnd = scoredata + ScoreLen;
 
 	switch (RawPlayer)
 	{
 	case RDosPlay:
-		while (score < scoredata + ScoreLen)
+		while (score < ScoreEnd)
 		{
 			data = *score++;
 			reg = *score++;
@@ -1386,7 +1244,7 @@ int OPLmusicFile::PlayTick ()
 		break;
 
 	case DosBox1:
-		while (score < scoredata + ScoreLen)
+		while (score < ScoreEnd)
 		{
 			reg = *score++;
 
@@ -1401,7 +1259,7 @@ int OPLmusicFile::PlayTick ()
 			}
 			else if (reg == 1)
 			{ // Two-uint8_t delay
-				int delay = score[0] + (score[1] << 8) + 1;
+				int delay = READ_L16(score, 0) + 1;
 				score += 2;
 				return delay;
 			}
@@ -1430,7 +1288,7 @@ int OPLmusicFile::PlayTick ()
 			uint8_t short_delay_code = scoredata[0x17];
 			uint8_t long_delay_code = scoredata[0x18];
 
-			while (score < scoredata + ScoreLen)
+			while (score < ScoreEnd)
 			{
 				uint8_t code = *score++;
 				data = *score++;
@@ -1457,7 +1315,7 @@ int OPLmusicFile::PlayTick ()
 
 	case IMF:
 		delay = 0;
-		while (delay == 0 && score + 4 - scoredata <= ScoreLen)
+		while (delay == 0 && score + 4 <= ScoreEnd)
 		{
 			if (*(uint32_t *)score == 0xFFFFFFFF)
 			{ // This is a special value that means to end the song.
@@ -1471,14 +1329,13 @@ int OPLmusicFile::PlayTick ()
 		}
 		return delay;
 	case AudioT:
-		if (score < (scoredata + sizeof(oplsound_t) + ScoreLen))
+		if (score < ScoreEnd)
 		{
 			uint8_t block = (Octave&7)<<2;
 			if (!score[0])
 				io->OPLwriteReg (0, 0xB0, block);
 			else
 			{
-				io->OPLwriteReg (0, 0x40, 0);
 				io->OPLwriteReg (0, 0xA0, score[0]);
 				io->OPLwriteReg (0, 0xB0, (block|0x20));
 			}

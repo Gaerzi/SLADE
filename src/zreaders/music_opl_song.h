@@ -38,17 +38,6 @@ static	uint8_t			carriers[9] =  { 3, 4, 5,11,12,13,19,20,21},
 						pcarriers[5] = {19,0xff,0xff,0xff,0xff},
 						pmodifiers[5] = {16,17,18,20,21};
 
-
-// That thing outputs to floating point, but SMFL is only compatible with 16-bit ints
-inline int16_t to_int16(float f)
-{
-	int32_t tmp = f * 32000;
-	if (tmp >  32767) tmp =  32767;
-	if (tmp < -32767) tmp = -32767;
-    return (int16_t)tmp;
-}
-
-
 /*
  *	Name:		Main header include file
  *	Project:	MUS File Player Library
@@ -325,7 +314,6 @@ public:
 
 
 	bool ServiceStream(void *buff, int numbytes);
-	bool ServiceStreamI(int16_t *buff, int numbytes);
 	void ResetChips();
 
 	bool IsValid() const;
@@ -340,7 +328,6 @@ public:
 
 protected:
 	void OffsetSamples(float *buff, int count);
-	void OffsetSamplesI(int16_t *buff, int count);
 
 	double NextTickIn;
 	double SamplesPerTick;

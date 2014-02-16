@@ -14,7 +14,7 @@ private:
 	static OPLPlayer*	instance;
 
 	OPLmusicFile*	emu;
-	short*			buffer;
+	void*			buffer;
 
 public:
 	OPLPlayer();
