@@ -635,7 +635,6 @@ public:
 	void Reset();
 	void WriteReg(int reg, int v);
 	void Update(float *buffer, int length);
-	void UpdateI(int16_t *buffer, int length);
 	void SetPanning(int c, float left, float right);
 };
 
@@ -655,32 +654,6 @@ void OPL3::Update(float *output, int numsamples) {
 					double channelOutput = channel->getChannelOutput(this);
 					output[0] += float(channelOutput * channel->leftPan);
 					output[1] += float(channelOutput * channel->rightPan);
-				}
-			}
-
-		// Advances the OPL3-wide vibrato index, which is used by 
-		// PhaseGenerator.getPhase() in each Operator.
-		vibratoIndex = (vibratoIndex + 1) & (OPL3DataStruct::vibratoTableLength - 1);
-		// Advances the OPL3-wide tremolo index, which is used by 
-		// EnvelopeGenerator.getEnvelope() in each Operator.
-		tremoloIndex++;
-		if(tremoloIndex >= OPL3DataStruct::tremoloTableLength) tremoloIndex = 0;
-		output += 2;
-	}
-}
-
-void OPL3::UpdateI(int16_t *output, int numsamples) {
-	while (numsamples--) {
-		// If _new = 0, use OPL2 mode with 9 channels. If _new = 1, use OPL3 18 channels;
-		for(int array=0; array < (_new + 1); array++)
-			for(int channelNumber=0; channelNumber < 9; channelNumber++) {
-				// Reads output from each OPL3 channel, and accumulates it in the output buffer:
-				Channel *channel = channels[array][channelNumber];
-				if (channel != &disabledChannel)
-				{
-					double channelOutput = channel->getChannelOutput(this);
-					output[0] += to_int16(float(channelOutput * channel->leftPan));
-					output[1] += to_int16(float(channelOutput * channel->rightPan));
 				}
 			}
 

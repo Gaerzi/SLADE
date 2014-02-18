@@ -12,7 +12,6 @@ public:
 	virtual void Reset() = 0;
 	virtual void WriteReg(int reg, int v) = 0;
 	virtual void Update(float *buffer, int length) = 0;
-	virtual void UpdateI(int16_t *buffer, int length) = 0;
 	virtual void SetPanning(int c, float left, float right) = 0;
 };
 
