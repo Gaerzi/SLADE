@@ -41,6 +41,7 @@
 				Name="VCCLCompilerTool"
 				AdditionalOptions="/I &quot;libmodplug\libmodplug&quot; /D &quot;USE_SFML_RENDERWINDOW&quot; /D &quot;__WXMSW__&quot; /D &quot;NOPCH&quot; /D &quot;GLEW_STATIC&quot; /D &quot;SFML_STATIC&quot;  /D &quot;UPDATEREVISION&quot;"
 				Optimization="0"
+				AdditionalIncludeDirectories="src;gme\gme;libmodplug\libmodplug"
 				PreprocessorDefinitions="WXDEBUG;WIN32;_DEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -60,7 +61,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="winmm.lib rpcrt4.lib kernel32.lib user32.lib gdi32.lib ole32.lib oleaut32.lib comctl32.lib comdlg32.lib uuid.lib advapi32.lib shell32.lib fluidsynth.lib wxbase29ud.lib wxmsw29ud_core.lib wxmsw29ud_gl.lib wxmsw29ud_aui.lib wxmsw29ud_html.lib wxmsw29ud_adv.lib wxmsw29ud_stc.lib wxzlibd.lib wxpngd.lib wxscintillad.lib opengl32.lib glu32.lib FreeImage.lib sfml-graphics-s-d.lib sfml-window-s-d.lib sfml-audio-s-d.lib sfml-system-s-d.lib sfml-main-d.lib"
+				AdditionalDependencies="winmm.lib rpcrt4.lib kernel32.lib user32.lib gdi32.lib ole32.lib oleaut32.lib comctl32.lib comdlg32.lib uuid.lib advapi32.lib shell32.lib fluidsynth.lib wxbase31ud.lib wxmsw31ud_core.lib wxmsw31ud_gl.lib wxmsw31ud_aui.lib wxmsw31ud_html.lib wxmsw31ud_adv.lib wxmsw31ud_stc.lib wxzlibd.lib wxpngd.lib wxscintillad.lib opengl32.lib glu32.lib FreeImage.lib sfml-graphics-s-d.lib sfml-window-s-d.lib sfml-audio-s-d.lib sfml-system-s-d.lib sfml-main-d.lib"
 				OutputFile="$(OutDir)\$(ProjectName)-dbg.exe"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
@@ -144,7 +145,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalOptions="/NODEFAULTLIB:LIBCMT"
-				AdditionalDependencies="winmm.lib comctl32.lib rpcrt4.lib wsock32.lib user32.lib shell32.lib advapi32.lib comdlg32.lib gdi32.lib ole32.lib oleaut32.lib fluidsynth.lib FreeImage.lib wxbase30u.lib wxmsw30u_core.lib wxmsw30u_aui.lib wxmsw30u_gl.lib wxmsw30u_html.lib wxmsw30u_adv.lib wxmsw30u_stc.lib wxmsw30u_media.lib wxtiff.lib wxjpeg.lib wxpng.lib wxzlib.lib wxregexu.lib wxexpat.lib wxscintilla.lib sfml-graphics-s.lib sfml-window-s.lib sfml-audio-s.lib sfml-system-s.lib sfml-main.lib"
+				AdditionalDependencies="winmm.lib comctl32.lib rpcrt4.lib wsock32.lib user32.lib shell32.lib advapi32.lib comdlg32.lib gdi32.lib ole32.lib oleaut32.lib fluidsynth.lib FreeImage.lib wxbase31u.lib wxmsw31u_core.lib wxmsw31u_aui.lib wxmsw31u_gl.lib wxmsw31u_html.lib wxmsw31u_adv.lib wxmsw31u_stc.lib wxmsw31u_media.lib wxtiff.lib wxjpeg.lib wxpng.lib wxzlib.lib wxregexu.lib wxexpat.lib wxscintilla.lib sfml-graphics-s.lib sfml-window-s.lib sfml-audio-s.lib sfml-system-s.lib sfml-main.lib"
 				LinkIncremental="1"
 				GenerateManifest="true"
 				GenerateDebugInformation="true"

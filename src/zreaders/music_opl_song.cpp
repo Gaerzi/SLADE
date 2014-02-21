@@ -1323,7 +1323,7 @@ int OPLmusicFile::PlayTick ()
 			}
 			reg = score[0];
 			data = score[1];
-			delay = LittleShort(((uint16_t *)score)[1]);
+			delay = READ_L16(score, 2);
 			score += 4;
 			io->OPLwriteReg (0, reg, data);
 		}
