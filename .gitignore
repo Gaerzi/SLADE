@@ -28,3 +28,5 @@
 /dist/portable
 *.user
 /src/gitinfo.h
+debug
+/dist/*.ilk
