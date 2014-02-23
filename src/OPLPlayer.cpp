@@ -153,8 +153,7 @@ bool OPLPlayer::onGetData(sf::SoundStream::Chunk &data)
 	float* fbuffer = (float*)buffer;
 	int16_t* ibuffer = (int16_t*)buffer;
 
-	emu->ServiceStream(fbuffer, OPL_BUFFERSIZE*sizeof(float));
-
+	bool res = emu ? emu->ServiceStream(fbuffer, OPL_BUFFERSIZE*sizeof(float)) : false;
 
 	for (size_t i = 0; i < OPL_BUFFERSIZE; ++i)
 	{
@@ -164,7 +163,7 @@ bool OPLPlayer::onGetData(sf::SoundStream::Chunk &data)
 	data.sampleCount = OPL_BUFFERSIZE;
 	data.samples     = ibuffer;
 
-	return true;
+	return res;
 }
 
 void OPLPlayer::onSeek(sf::Time timeOffset)

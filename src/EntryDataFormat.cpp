@@ -266,6 +266,8 @@ void EntryDataFormat::initBuiltinFormats()
 	new S3MModuleDataFormat();
 	new MODModuleDataFormat();
 	new OKTModuleDataFormat();
+	new DRODataFormat();
+	new RAWDataFormat();
 	new IMFDataFormat();
 	new IMFRawDataFormat();
 	new DoomSoundDataFormat();

@@ -365,6 +365,24 @@ entry_types
 		editor = audio;
 	}
 	
+	opl_raw : music
+	{
+		name = "RDOS OPL File";
+		format = opl_raw;
+		reliability = 120;
+		export_ext = "raw";
+		editor = audio;
+	}
+	
+	opl_dro : music
+	{
+		name = "DOSBox OPL File";
+		format = opl_dro;
+		reliability = 120;
+		export_ext = "dro";
+		editor = audio;
+	}
+	
 	snd_wolf : sound
 	{
 		name = "Sound (Wolf3D PCM)";

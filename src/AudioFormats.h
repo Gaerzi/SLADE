@@ -382,6 +382,55 @@ public:
 	}
 };
 
+class DRODataFormat : public EntryDataFormat
+{
+public:
+	DRODataFormat() : EntryDataFormat("opl_dro") {};
+	~DRODataFormat() {}
+
+	int isThisFormat(MemChunk& mc)
+	{
+		// Check size
+		if (mc.getSize() > 20)
+		{
+			// Check format
+			if (mc[0] == 'D' && mc[1] == 'B' && mc[2] == 'R' &&
+			        mc[3] == 'A' && mc[4] == 'W' &&	mc[5] == 'O' &&
+			        mc[6] == 'P' && mc[7] == 'L')
+			{
+				uint16_t v1 = READ_L16(mc, 8);
+				uint16_t v2 = READ_L16(mc, 10);
+				if ((v1 == 2 && v2 == 0) || v2 == 1)
+					return EDF_TRUE;
+			}
+		}
+		return EDF_FALSE;
+	}
+};
+
+class RAWDataFormat : public EntryDataFormat
+{
+public:
+	RAWDataFormat() : EntryDataFormat("opl_raw") {};
+	~RAWDataFormat() {}
+
+	int isThisFormat(MemChunk& mc)
+	{
+		// Check size
+		if (mc.getSize() > 10)
+		{
+			// Check format
+			if (mc[0] == 'R' && mc[1] == 'A' && mc[2] == 'W' &&
+			        mc[3] == 'A' && mc[4] == 'D' &&	mc[5] == 'A' &&
+			        mc[6] == 'T' && mc[7] == 'A')
+			{
+				return EDF_TRUE;
+			}
+		}
+		return EDF_FALSE;
+	}
+};
+
 class DoomSoundDataFormat : public EntryDataFormat
 {
 public:
