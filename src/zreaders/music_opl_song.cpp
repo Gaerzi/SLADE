@@ -888,21 +888,23 @@ fail:		delete[] scoredata;
 	else if (((uint32_t *)scoredata)[0] == MAKE_ID('D','B','R','A') &&
 		((uint32_t *)scoredata)[1] == MAKE_ID('W','O','P','L'))
 	{
-		if (((uint32_t *)scoredata)[2] == MAKE_ID(0,0,1,0))
+		uint16_t v1 = READ_L16(scoredata, 8);
+		uint16_t v2 = READ_L16(scoredata, 10);
+		if ((v1 == 0 || v1 > 1000) && v2 == 1)
 		{
 			RawPlayer = DosBox1;
 			SamplesPerTick = OPL_SAMPLE_RATE / 1000;
-			ScoreLen = MIN(len - 24, LittleLong(((uint32_t *)scoredata)[4])) + 24;
+			ScoreLen = MIN(len - 24, (unsigned)READ_L32(scoredata, 16)) + 24;
 		}
-		else if (((uint32_t *)scoredata)[2] == MAKE_ID(2,0,0,0))
+		else if (v1 == 2 && v2 == 0)
 		{
 			bool okay = true;
-			if (scoredata[20] != 0)
+			if (scoredata[21] != 0)
 			{
 				wxLogMessage("Unsupported DOSBox Raw OPL format %d", scoredata[20]);
 				okay = false;
 			}
-			if (scoredata[21] != 0)
+			if (scoredata[22] != 0)
 			{
 				wxLogMessage("Unsupported DOSBox Raw OPL compression %d", scoredata[21]);
 				okay = false;
@@ -912,11 +914,11 @@ fail:		delete[] scoredata;
 			RawPlayer = DosBox2;
 			SamplesPerTick = OPL_SAMPLE_RATE / 1000;
 			int headersize = 0x1A + scoredata[0x19];
-			ScoreLen = MIN(len - headersize, LittleLong(((uint32_t *)scoredata)[3]) * 2) + headersize;
+			ScoreLen = MIN(len - headersize, (unsigned)READ_L32(scoredata, 12) * 2) + headersize;
 		}
 		else
 		{
-			wxLogMessage("Unsupported DOSBox Raw OPL version %d.%d", LittleShort(((uint16_t *)scoredata)[4]), LittleShort(((uint16_t *)scoredata)[5]));
+			wxLogMessage("Unsupported DOSBox Raw OPL version %d.%d", v1, v2);
 			goto fail;
 		}
 	}
@@ -935,14 +937,15 @@ fail:		delete[] scoredata;
 		{
 			while (score < max && *score++ != '\0') {}
 		}
-		if (score < max) score++;	// Skip unknown uint8_t
+		score++;	// Skip unknown uint8_t
 		if (score + 8 > max)
 		{ // Not enough room left for song data
 			delete[] scoredata;
 			scoredata = NULL;
 			return;
 		}
-		songlen = LittleLong(*(uint32_t *)score);
+		songlen = READ_L32(score, 0);
+		score += 4;
 		if (songlen != 0 && (songlen +=4) < ScoreLen - (score - scoredata))
 		{
 			ScoreLen = songlen + int(score - scoredata);
@@ -1010,7 +1013,7 @@ void OPLmusicFile::Restart ()
 	{
 	case RDosPlay:
 		score = scoredata + 10;
-		SamplesPerTick = LittleShort(*(uint16_t *)(scoredata + 8)) / ADLIB_CLOCK_MUL;
+		SamplesPerTick = READ_L16(scoredata, 8) / ADLIB_CLOCK_MUL;
 		break;
 
 	case DosBox1:
@@ -1026,17 +1029,12 @@ void OPLmusicFile::Restart ()
 	case IMF:
 		score = scoredata + 6;
 		SamplesPerTick = OPL_SAMPLE_RATE / ImfRate;
-
 		// Skip track and game name
 		for (int i = 2; i != 0; --i)
 		{
 			while (*score++ != '\0') {}
 		}
-		score++;	// Skip unknown uint8_t
-		if (*(uint32_t *)score != 0)
-		{
-			score += 4;		// Skip song length
-		}
+		score += 5;	// Skip unknown uint8_t and song length
 		break;
 
 	case AudioT:
@@ -1090,7 +1088,7 @@ bool OPLmusicFile::ServiceStream (void *buff, int numbytes)
 					{
 						for (i = 0; i < io->NumChips; ++i)
 						{
-							io->chips[i]->Update(samples1, samplesleft);
+							io->chips[i]->Update(samples1, numsamples);
 						}
 						OffsetSamples(samples1, numsamples << stereoshift);
 					}
@@ -1424,7 +1422,7 @@ int DiskWriterIO::OPLinit(uint32_t numchips, bool dontcare)
 {
 	// If the file extension is unknown or not present, the default format
 	// is RAW. Otherwise, you can use DRO.
-	if (Filename.Len() < 5 || Filename.EndsWith(".dro"))
+	if (Filename.Len() < 5 || !Filename.EndsWith(".dro"))
 	{
 		Format = FMT_RDOS;
 	}
