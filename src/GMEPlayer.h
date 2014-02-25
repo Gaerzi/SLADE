@@ -4,6 +4,8 @@
 
 #include "gme.h"
 #include <SFML/Audio.hpp>
+class wxString;
+typedef wxString string;
 
 #define GME_BUFFERSIZE 4096
 
@@ -52,6 +54,8 @@ public:
 	bool	setVolume(int volume);
 	void	onSeek(sf::Time timeOffset);
 	bool	onGetData(sf::SoundStream::Chunk& data);
+	bool	getTrackInfo(gme_info_t ** gme_info, int track);
+	string	getInfo(int track = 0);
 };
 
 // Define for less cumbersome GMEPlayer::getInstance()

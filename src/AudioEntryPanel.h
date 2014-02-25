@@ -33,6 +33,7 @@ private:
 	wxMediaCtrl*	media_ctrl;
 	wxStaticText*	txt_title;
 	wxStaticText*	txt_track;
+	wxTextCtrl*		txt_info;
 
 	sf::SoundBuffer*	sound_buffer;
 	sf::Sound			sound;
@@ -68,6 +69,7 @@ public:
 	bool	openEmu(MemChunk& data);
 	bool	openOpl(MemChunk& data);
 	bool	openMedia(string filename);
+	bool	updateInfo();
 	void	startStream();
 	void	stopStream();
 	void	resetStream();

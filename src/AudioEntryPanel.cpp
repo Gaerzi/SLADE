@@ -94,10 +94,13 @@ AudioEntryPanel::AudioEntryPanel(wxWindow* parent) : EntryPanel(parent, "audio")
 	txt_title = new wxStaticText(this, -1, wxEmptyString);
 	sizer_gb->Add(txt_title, wxGBPosition(3, 0), wxGBSpan(3, 9));
 
+	// Add info
+	txt_info = new wxTextCtrl(this, -1, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE|wxTE_READONLY|wxTE_BESTWRAP);
+	sizer_gb->Add(txt_info, wxGBPosition(6, 0), wxGBSpan(9, 9), wxEXPAND|wxHORIZONTAL);
+
 	// Add track number
 	txt_track = new wxStaticText(this, -1, "1/1");
 	sizer_gb->Add(txt_track, wxGBPosition(1, 5), wxDefaultSpan, wxALIGN_CENTER);
-
 
 	// Separator
 	sizer_gb->Add(new wxStaticLine(this, -1, wxDefaultPosition, wxDefaultSize, wxLI_VERTICAL), wxGBPosition(1, 6), wxDefaultSpan, wxEXPAND|wxLEFT|wxRIGHT, 8);
@@ -314,6 +317,7 @@ bool AudioEntryPanel::open()
 
 	txt_title->SetLabel(entry->getPath(true));
 	txt_track->SetLabel(S_FMT("%d/%d", subsong+1, num_tracks));
+	updateInfo();
 
 	// Disable prev/next track buttons if only one track is available
 	if (num_tracks < 2)
@@ -576,6 +580,7 @@ void AudioEntryPanel::startStream()
 	case AUTYPE_OPL:
 		theOPLPlayer->play(); break;
 	}
+	updateInfo();
 }
 
 /* AudioEntryPanel::stopStream
@@ -631,6 +636,38 @@ void AudioEntryPanel::resetStream()
 	}
 }
 
+/* AudioEntryPanel::updateInfo
+ * Used to update the info area, returns true if info is non-empty
+ *******************************************************************/
+bool AudioEntryPanel::updateInfo()
+{
+	txt_info->Clear();
+	string info;
+	switch (audio_type)
+	{
+	case AUTYPE_SOUND:
+		break;
+	case AUTYPE_MUSIC:
+		break;
+#ifndef NOLIBMODPLUG
+	case AUTYPE_MOD:
+		break;
+#endif
+	case AUTYPE_MIDI:
+		break;
+	case AUTYPE_MEDIA:
+		break;
+	case AUTYPE_EMU:
+		info = theGMEPlayer->getInfo(subsong);
+		break;
+	case AUTYPE_OPL:
+		break;
+	}
+	txt_info->SetValue(info);
+	if (info.length())
+		return true;
+	return false;
+}
 
 /*******************************************************************
  * AUDIOENTRYPANEL CLASS EVENTS
@@ -687,6 +724,7 @@ void AudioEntryPanel::onBtnPrev(wxCommandEvent& e)
 	else if (entry->getType()->getFormat().StartsWith("gme"))
 		theGMEPlayer->play(subsong);
 	txt_track->SetLabel(S_FMT("%d/%d", subsong+1, num_tracks));
+	updateInfo();
 }
 
 /* AudioEntryPanel::onBtnNext
@@ -709,6 +747,7 @@ void AudioEntryPanel::onBtnNext(wxCommandEvent& e)
 				++subsong;
 		}
 		txt_track->SetLabel(S_FMT("%d/%d", subsong+1, num_tracks));
+		updateInfo();
 	}
 }
 

@@ -114,35 +114,44 @@ bool GMEPlayer::play(int track)
 			if ( track_info->length <= 0 )
 				track_info->length = (long) (150000);
 			gme_set_fade(emu, track_info->length);
-
-			gme_info_t * gme_info = NULL;
-			RETURN_ERR(gme_track_info(emu, &gme_info, track));
-			string info;
-			if (gme_info->song[0])
-				info = S_FMT("%s", gme_info->song);
-			else
-				info = "Unidentified song";
-			if (gme_info->game[0])
-				info += S_FMT(" from '%s'", gme_info->game);
-			if (gme_info->system[0])
-				info += S_FMT(" on %s", gme_info->system);
-			if (gme_info->author[0])
-				info += S_FMT(" by %s", gme_info->author);
-			if (gme_info->copyright[0])
-				info += S_FMT(" (c) %s", gme_info->copyright);
-			if (gme_info->dumper[0])
-				info += S_FMT(" dumped by %s", gme_info->dumper);
-			if (gme_info->comment[0])
-				info += S_FMT(" \"%s\"", gme_info->comment);
-			gme_free_info(gme_info);
-
-			// TODO: better way to recover that string
-			wxLogMessage(info);
 		}
 		
 		sf::SoundStream::play();
 	}
 	return true;
+}
+
+bool GMEPlayer::getTrackInfo(gme_info_t ** gme_info, int track)
+{
+	RETURN_ERR(gme_track_info(emu, gme_info, track));
+	return true;
+}
+
+string GMEPlayer::getInfo(int track)
+{
+	string info = wxEmptyString;
+	gme_info_t * gme_info = NULL;
+	if (emu && getTrackInfo(&gme_info, track))
+	{
+		if (gme_info->song[0])
+			info = S_FMT("Track name: %s\n", gme_info->song);
+		else
+			info = "Unidentified song\n";
+		if (gme_info->game[0])
+			info += S_FMT("Game: '%s'\n", gme_info->game);
+		if (gme_info->system[0])
+			info += S_FMT("System: %s\n", gme_info->system);
+		if (gme_info->author[0])
+			info += S_FMT("Author(s): %s\n", gme_info->author);
+		if (gme_info->copyright[0])
+			info += S_FMT("(c) %s\n", gme_info->copyright);
+		if (gme_info->dumper[0])
+			info += S_FMT("Dumped by: %s\n", gme_info->dumper);
+		if (gme_info->comment[0])
+			info += S_FMT("\"%s\"\n", gme_info->comment);
+		gme_free_info(gme_info);
+	}
+	return info;
 }
 
 bool GMEPlayer::pause()
