@@ -661,6 +661,7 @@ bool AudioEntryPanel::updateInfo()
 		info = theGMEPlayer->getInfo(subsong);
 		break;
 	case AUTYPE_OPL:
+		info = theOPLPlayer->getInfo();
 		break;
 	}
 	txt_info->SetValue(info);

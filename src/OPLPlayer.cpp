@@ -74,6 +74,7 @@ bool OPLPlayer::openData(MemChunk &mc, int subsong, int * num_tracks)
 {
 	stop();
 	*num_tracks = 1;
+	data.importMem(mc.getData(), mc.getSize());
 
 	emu = new OPLmusicFile(NULL, mc.getData(), mc.getSize());
 	emu->SetImfRate(findImfRate(mc.crc()));
@@ -190,4 +191,105 @@ int OPLPlayer::findImfRate(size_t crc32)
 		} while (token.length());
 	}
 	return imf_rate;
+}
+
+/* OPLPlayer::getInfo
+ * Returns a string containing info about the current track. Since
+ * only IMF files may contain metadata, an empty string is returned
+ * for other formats. There are three kinds of metadata that may be
+ * found in an IMF file:
+ * 1. MUSE metadata (track name and source path)
+ * 2. Martin Fernandez's format header (track and game name)
+ * 3. Adam Nielsen's footer (title, author, comment, and program)
+ * In addition, we retrieve the update rate.
+ */
+string OPLPlayer::getInfo()
+{
+	string info = wxEmptyString;
+	if (emu && emu->getRawPlayer() == 1)
+	{
+		string track1, track2, track3;
+		string source, game;
+		string author, comment, program;
+		size_t offset;
+		size_t pos = 6;
+		size_t size = data.getSize();
+		if (size > pos && data[pos] != 0)
+		{
+			while (pos < size && data[pos] != 0)
+				track1 += data[pos++];
+		} else ++pos;
+		if (size > pos && data[pos] != 0)
+		{
+			while (pos < size && data[pos] != 0)
+				game += data[pos++];
+		} else ++pos;
+		++pos; // unknown byte
+		offset = READ_L32(data, pos);
+		if (offset != 0)
+		{
+			offset += pos + 4u;
+			while (offset +13 < size)
+			{
+				// Nielsen footer
+				if (data[offset] == 0x1A)
+				{
+					++offset;
+					string * track;
+					if (track1.IsEmpty()) track = &track1;
+					else if (track2.IsEmpty()) track = &track2;
+					else track = &track3;
+					while (offset < size && data[offset] != 0)
+						track->Append(data[offset++]);
+					++offset;
+					while (offset < size && data[offset] != 0)
+						author.Append(data[offset++]);
+					++offset;
+					while (offset < size && data[offset] != 0)
+						comment.Append(data[offset++]);
+					++offset;
+					while (offset < size && data[offset] != 0)
+						program.Append(data[offset++]);
+					++offset;
+				}
+				// MUSE footer
+				else if (offset + 88 <= size)
+				{
+					offset += 2;
+					string * track;
+					if (track1.IsEmpty()) track = &track1;
+					else if (track2.IsEmpty()) track = &track2;
+					else track = &track3;
+					track->Append((char*)(&data[offset]), 16);
+					source.Append((char*)(&data[offset+16]), 64);
+					offset += 86;
+				}
+			}
+		}
+		if (track1.length())
+		{
+			info = S_FMT("Track name: %s", track1);
+			if (track2.length())
+				info += S_FMT(" / %s", track2);
+			if (track3.length())
+				info += S_FMT(" / %s", track3);
+			info += "\n";
+		}
+		else
+			info = "Unidentified song\n";
+
+		if (game.length())
+			info += S_FMT("Game: %s\n", game);
+		if (author.length())
+			info += S_FMT("Author(s): %s\n", author);
+		if (source.length())
+			info += S_FMT("Source: %s\n", source);
+		if (program.length())
+			info += S_FMT("Tagged with: %s\n", program);
+		if (comment.length())
+			info += S_FMT("\"%s\"\n", comment);
+		
+		info += S_FMT("IMF update rate: %u\n", emu->GetImfRate());
+	}
+	return info;
 }

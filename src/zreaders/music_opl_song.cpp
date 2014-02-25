@@ -332,7 +332,8 @@ void OPLio::OPLwriteInstrument(uint32_t channel, inst_t *instr)
 	OPLwriteChannel(0x60, channel, instr->mAttack,  instr->cAttack);
 	OPLwriteChannel(0x80, channel, instr->mSus,     instr->cSus);
 	OPLwriteChannel(0xE0, channel, instr->mWave,    instr->cWave);
-	OPLwriteValue  (0xC0, channel, instr->nConn | 0x30);
+	//OPLwriteValue  (0xC0, channel, instr->nConn | 0x30);
+	OPLwriteValue  (0xC0, channel, 0x30);
 }
 
 /*
@@ -960,7 +961,6 @@ fail:		delete[] scoredata;
 		oplsound_t * sound = (oplsound_t*)scoredata;
 		Octave = sound->octave;
 		io->OPLwriteInstrument(0, &sound->inst);
-		Note = false;
 		ScoreLen = len;
 		score = scoredata + sizeof(oplsound_t);
 	}
@@ -1040,6 +1040,9 @@ void OPLmusicFile::Restart ()
 	case AudioT:
 		SamplesPerTick = OPL_SAMPLE_RATE / 140;
 		score = scoredata + sizeof(oplsound_t);
+		oplsound_t * sound = (oplsound_t*)scoredata;
+		Octave = sound->octave;
+		io->OPLwriteInstrument(0, &sound->inst);
 		break;
 	}
 	io->SetClockRate(SamplesPerTick);
@@ -1338,8 +1341,8 @@ int OPLmusicFile::PlayTick ()
 				io->OPLwriteReg (0, 0xB0, (block|0x20));
 			}
 			++score;
+			return 1;
 		}
-		return 1;
 	}
 	return 0;
 }
@@ -1367,7 +1370,6 @@ OPLmusicFile::OPLmusicFile(const OPLmusicFile *source, const char *filename)
 	score = source->score;
 	NumChips = source->NumChips;
 	WhichChip = 0;
-	Note = source->Note;
 	Octave = source->Octave;
 	if (io != NULL)
 	{

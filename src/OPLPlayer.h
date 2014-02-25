@@ -4,6 +4,8 @@
 
 #include "zreaders/music_opl_song.h"
 #include <SFML/Audio.hpp>
+class wxString;
+typedef wxString string;
 
 #define OPL_BUFFERSIZE 4096
 #define OPL_SAMPLE_RATE 49716
@@ -15,6 +17,7 @@ private:
 
 	OPLmusicFile*	emu;
 	void*			buffer;
+	MemChunk		data;
 
 public:
 	OPLPlayer();
@@ -52,6 +55,7 @@ public:
 	bool	onGetData(sf::SoundStream::Chunk& data);
 
 	int		findImfRate(uint32_t crc32);
+	string	getInfo();
 };
 
 // Define for less cumbersome GMEPlayer::getInstance()

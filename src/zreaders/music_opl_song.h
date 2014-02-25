@@ -325,6 +325,7 @@ public:
 	int  GetPosition() { return score - scoredata; }
 	bool SetPosition(int);
 	void SetImfRate(int rate) { if (rate) ImfRate = rate; }
+	int  GetImfRate() { return ImfRate; }
 
 protected:
 	void OffsetSamples(float *buff, int count);
@@ -336,7 +337,6 @@ protected:
 	bool Looping;
 	double LastOffset;
 	bool FullPan;
-	bool Note;		// 0 for note off, 1 for note on; used by AudioT format
 	uint8_t Octave;	// Octave, used by AudioT format;
 
 	/* OPL channel (voice) data */
@@ -377,6 +377,9 @@ protected:
 	} RawPlayer;
 	int ScoreLen;
 	int WhichChip;
+
+public:
+	RawPlayers getRawPlayer() { return RawPlayer; }
 };
 
 //#endif // OPL_MUS_PLAYER_H
