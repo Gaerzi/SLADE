@@ -143,10 +143,10 @@ string searchIMFName(MemChunk& mc)
 
 	string ret = "";
 	string fullname = "";
-	if (mc.getSize() > 82u)
+	if (mc.getSize() > 82)
 	{
-		uint16_t nameOffset = READ_L16(mc, 0)+4u;
-		if (mc.getSize() > nameOffset+80u)
+		uint16_t nameOffset = wxINT16_SWAP_ON_BE(*(uint16_t*)&mc[0])+4;
+		if (mc.getSize() > nameOffset+80)
 		{
 			memcpy(tmp, &mc[nameOffset], 16);
 			tmp[strlen(tmp)] = 0;
@@ -157,7 +157,7 @@ string searchIMFName(MemChunk& mc)
 			fullname = tmp2;
 		}
 		// Shareware stubs
-		else if (nameOffset == 4)
+		else if (*(uint16_t*)&mc[0] == 0)
 		{
 			nameOffset = 2;
 			memcpy(tmp, &mc[2], 16);
