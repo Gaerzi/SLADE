@@ -654,6 +654,7 @@ bool AudioEntryPanel::updateInfo()
 		break;
 #endif
 	case AUTYPE_MIDI:
+		info = theMIDIPlayer->getInfo();
 		break;
 	case AUTYPE_MEDIA:
 		break;

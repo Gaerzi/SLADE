@@ -214,6 +214,7 @@ bool MIDIPlayer::openData(MemChunk &mc)
 	fs_player = new_fluid_player(fs_synth);
 
 	// Open midi
+	data.importMem(mc.getData(), mc.getSize());
 	if (fs_player)
 	{
 		fluid_player_add_mem(fs_player, mc.getData(), mc.getSize());
@@ -313,4 +314,108 @@ bool MIDIPlayer::setVolume(int volume)
 	fluid_synth_set_gain(fs_synth, volume*0.01f);
 
 	return true;
+}
+
+/* MIDIPlayer::getInfo
+ * Parses the MIDI data to find text events, and return a string
+ * where they are each on a separate line. MIDI text events include:
+ * Text event (FF 01)
+ * Copyright notice (FF 02)
+ * Track title (FF 03)
+ * Instrument name (FF 04)
+ * Lyrics (FF 05)
+ * Marker (FF 06)
+ * Cue point (FF 07)
+ *******************************************************************/
+string MIDIPlayer::getInfo()
+{
+	string ret = wxEmptyString;
+	size_t pos = 0;
+	size_t end = data.getSize();
+
+	while (pos + 8 < end)
+	{
+		size_t chunk_name = READ_B32(data, pos);
+		size_t chunk_size = READ_B32(data, pos+4);
+		pos += 8;
+		size_t chunk_end = pos + chunk_size;
+		uint8_t running_status = 0;
+		if (chunk_name == (size_t)(('M'<<24)|('T'<<16)|('r'<<8)|'k')) // MTrk
+		{
+			size_t tpos = pos;
+			while (tpos + 4 < chunk_end)
+			{
+				// Skip past delta time
+				for (int a = 0; a < 4; ++a)
+					if ((data[tpos++] & 0x80) != 0x80)
+						break;
+
+				// Update status
+				uint8_t evtype = 0;
+				uint8_t status = data[tpos++];
+				size_t evsize = 0;
+				if (status < 0x80)
+				{
+					evtype = status;
+					status = running_status;
+				}
+				else
+				{
+					running_status = status;
+					evtype = data[tpos++];
+				}
+				// Handle meta events
+				if (status == 0xFF)
+				{
+					evsize = 0;
+					for (int a = 0; a < 4; ++a)
+					{
+						evsize = (evsize<<7) + (data[tpos]&0x7F);
+						if ((data[tpos++] & 0x80) != 0x80)
+							break;
+					}
+
+					string tmp = wxEmptyString;
+					if (evtype > 0 && evtype < 8 && evsize)
+						tmp.Append((const char*)(&data[tpos]), evsize);
+
+					switch (evtype)
+					{
+					case 1: ret += S_FMT("Text: %s\n", tmp); break;
+					case 2: ret += S_FMT("Copyright: %s\n", tmp); break;
+					case 3: ret += S_FMT("Title: %s\n", tmp); break;
+					case 4: ret += S_FMT("Instrument: %s\n", tmp); break;
+					case 5: ret += S_FMT("Lyrics: %s\n", tmp); break;
+					case 6: ret += S_FMT("Marker: %s\n", tmp); break;
+					case 7: ret += S_FMT("Cue point: %s\n", tmp); break;
+					default: break;
+					}
+					tpos += evsize;
+				}
+				// Handle other events. Program change and channel aftertouch
+				// have only one parameter, other non-meta events have two.
+				// Sysex events have variable length
+				else switch (status & 0xF0)
+				{
+					case 0xC0:	// Program Change
+					case 0xD0:	// Channel Aftertouch
+						break;
+					case 0xF0:	// Sysex events
+						evsize = 0;
+						for (int a = 0; a < 4; ++a)
+						{
+							evsize = (evsize<<7) + (data[tpos]&0x7F);
+							if ((data[tpos++] & 0x80) != 0x80)
+								break;
+						}
+						tpos += evsize;
+						break;
+					default:
+						tpos++;	// Skip next parameter
+				}
+			}
+		}
+		pos = chunk_end;
+	}
+	return ret;
 }
