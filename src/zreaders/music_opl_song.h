@@ -118,11 +118,6 @@ Voice-mail (Czech language only, not recommended; weekends only):
 
 /* Global Definitions */
 
-#define MLVERSION	0x0175
-#define MLVERSIONSTR	"1.75"
-extern char MLversion[];
-extern char MLcopyright[];
-
 #define CHANNELS	16		// total channels 0..CHANNELS-1
 #define PERCUSSION	15		// percussion channel
 
@@ -238,14 +233,12 @@ enum MUSctrl {
     ctrlPoly,
 };
 
-#define ADLIB_CLOCK_MUL			24.0
-
 //#endif // __MUSLIB_H_
 
 //#ifndef OPL_MUS_PLAYER_H
 //#define OPL_MUS_PLAYER_H
 
-
+#define ADLIB_CLOCK_MUL			24.0
 
 class OPLmusicFile
 {
