@@ -337,11 +337,13 @@ public:
 	{
 		size_t size = mc.getSize();
 		// Check size
-		if (size > 94)
+		if (size > 94 && size < 65535)
 		{
+			int ret = EDF_MAYBE;
+
 			// Check data size info
 			size_t datasize = READ_L16(mc, 0);
-			if (datasize + 90 != size && datasize + 2 != size && datasize != 0)
+			if (datasize > size)
 				return EDF_FALSE;
 
 			// So-called type 1 begins with data size, type 0 doesn't.
@@ -350,16 +352,20 @@ public:
 			size_t enough = datasize ? datasize : size;
 			enough = MIN(enough, 160u+tofs);
 
-			// First index command is writing 0 on register 0
+			// First index command is usually writing 0 on register 0
 			if (READ_L16(mc, tofs) != 0)
-				return EDF_FALSE;
+				ret = EDF_UNLIKELY;
 
 			// Check data: uint8_t register, uint8_t data, uint16_t delay
 			for (size_t i = 4+tofs; i < enough; i+=4)
 			{
 				uint8_t reg = mc[i];
 				uint8_t rega = reg & 0xE0, regb = reg & 0x1F, regc = reg & 0x0F;
-				if (rega >= 0xA0 && rega <= 0xC0)
+				if (reg == (i - tofs)/4)
+				{
+					// Hack for titlermx.imf
+				}
+				else if (rega >= 0xA0 && rega <= 0xC0)
 				{
 					if (regc > 8 && reg != 0xBD)
 						return EDF_FALSE;
@@ -372,11 +378,11 @@ public:
 				else if (rega == 0)
 				{
 					if (regb != 0 && regb != 4 && regb != 5 && regb != 8)
-						return false;
+						return EDF_FALSE;
 				}
 			}
 			// Figure that's probably good enough
-			return EDF_MAYBE;
+			return ret;
 		}
 		return EDF_FALSE;
 	}
