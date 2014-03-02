@@ -333,7 +333,8 @@ string MIDIPlayer::getInfo()
 	size_t pos = 0;
 	size_t end = data.getSize();
 	size_t track_counter = 0;
-	size_t num_tracks = 0;
+	uint16_t num_tracks = 0;
+	uint16_t format = 0;
 
 	while (pos + 8 < end)
 	{
@@ -344,13 +345,18 @@ string MIDIPlayer::getInfo()
 		uint8_t running_status = 0;
 		if (chunk_name == (size_t)(('M'<<24)|('T'<<16)|('h'<<8)|'d')) // MThd
 		{
+			format = READ_B16(data, pos);
 			num_tracks = READ_B16(data, pos + 2);
-			ret += S_FMT("MIDI format %u with %u tracks and time division %u\n", 
-				READ_B16(data, pos), num_tracks, READ_B16(data, pos + 4));
+			uint16_t time_div = READ_B16(data, pos + 4);
+			if (format == 0)
+				ret += S_FMT("MIDI format 0 with time division %u\n", time_div);
+			else ret += S_FMT("MIDI format %u with %u tracks and time division %u\n", 
+				format, num_tracks, time_div);
 		}
 		else if (chunk_name == (size_t)(('M'<<24)|('T'<<16)|('r'<<8)|'k')) // MTrk
 		{
-			ret += S_FMT("\nTrack %u/%u\n", ++track_counter, num_tracks);
+			if (format == 2)
+				ret += S_FMT("\nTrack %u/%u\n", ++track_counter, num_tracks);
 			size_t tpos = pos;
 			while (tpos + 4 < chunk_end)
 			{
