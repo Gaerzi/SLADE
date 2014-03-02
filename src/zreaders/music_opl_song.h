@@ -31,12 +31,13 @@ struct oplsound_t
 #pragma pack()
 
 // These two arrays are also taken from Wolf3D source code
+// They are here for reference only, not used in code.
 // This table maps channel numbers to carrier and modulator op cells
-static	uint8_t			carriers[9] =  { 3, 4, 5,11,12,13,19,20,21},
-						modifiers[9] = { 0, 1, 2, 8, 9,10,16,17,18},
+//static	uint8_t			carriers[9] =  { 3, 4, 5,11,12,13,19,20,21},
+//						modifiers[9] = { 0, 1, 2, 8, 9,10,16,17,18},
 // This table maps percussive voice numbers to op cells
-						pcarriers[5] = {19,0xff,0xff,0xff,0xff},
-						pmodifiers[5] = {16,17,18,20,21};
+//						pcarriers[5] = {19,0xff,0xff,0xff,0xff},
+//						pmodifiers[5] = {16,17,18,20,21};
 
 /*
  *	Name:		Main header include file
@@ -124,18 +125,6 @@ extern char MLcopyright[];
 
 #define CHANNELS	16		// total channels 0..CHANNELS-1
 #define PERCUSSION	15		// percussion channel
-
-/* MUS file header structure */
-struct MUSheader {
-	char		ID[4];			// identifier "MUS" 0x1A
-	int16_t	scoreLen;		// score length
-	int16_t	scoreStart;		// score start
-	int16_t	channels;		// primary channels
-	int16_t	sec_channels;	// secondary channels (??)
-	int16_t instrCnt;		// used instrument count
-	int16_t	dummy;
-//	int16_t	instruments[...];	// table of used instruments
-};
 
 /* OPL2 instrument */
 struct OPL2instrument {
@@ -225,32 +214,6 @@ struct OPLio {
 	//bool IsOPL3;
 };
 
-struct DiskWriterIO : public OPLio
-{
-	DiskWriterIO(const char *filename);
-	~DiskWriterIO();
-
-	int OPLinit(uint32_t numchips, bool notused=false);
-	void OPLdeinit();
-	void OPLwriteReg(int which, uint32_t reg, uint8_t data);
-	void SetClockRate(double samples_per_tick);
-	void WriteDelay(int ticks);
-
-	void SetChip(int chipnum);
-
-	FILE *File;
-	string Filename;
-	int Format;
-	bool NeedClockRate;
-	double TimePerTick;		// In milliseconds
-	double CurTime;
-	int CurIntTime;
-	int TickMul;
-	int CurChip;
-
-	enum { FMT_RDOS, FMT_DOSBOX };
-};
-
 enum MUSctrl {
     ctrlPatch = 0,
     ctrlBank,
@@ -288,7 +251,6 @@ class OPLmusicFile
 {
 public:
 	OPLmusicFile(FILE *file, const uint8_t *musiccache, size_t len);
-	OPLmusicFile(const OPLmusicFile *source, const char *filename);
 	~OPLmusicFile();
 
 	uint8_t *score;
@@ -319,7 +281,6 @@ public:
 	bool IsValid() const;
 	void SetLooping(bool loop);
 	void Restart();
-	void Dump();
 
 	int  GetLength() { return ScoreLen; }
 	int  GetPosition() { return score - scoredata; }
