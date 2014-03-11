@@ -10,7 +10,7 @@
 
 // These structs are derived from the Wolf3D source code
 #pragma pack(1)
-struct inst_t
+struct audiot_inst_t
 {
 	uint8_t	mChar,cChar,
 			mScale,cScale,
@@ -23,10 +23,49 @@ struct inst_t
 
 struct oplsound_t
 {
-	uint32_t	length;
-	uint16_t	priority;
-	inst_t		inst;
-	uint8_t		octave;
+	uint32_t		length;
+	uint16_t		priority;
+	audiot_inst_t	inst;
+	uint8_t			octave;
+};
+
+// This struct is derived from specs at http://doomwiki.org/wiki/GENMIDI
+/*
+0 	1 	Modulator Characteristics (tremolo / vibrato / sustain / KSR / multi)
+1 	1 	Modulator Attack rate / decay rate
+2 	1 	Modulator Sustain level / release rate
+3 	1 	Modulator Waveform select
+4 	1 	Modulator Key scale level
+5 	1 	Modulator Output level
+6 	1 	Feedback
+7 	1 	Carrier Characteristics
+8 	1 	Carrier Attack rate / decay rate
+9 	1 	Carrier Sustain level / release rate
+10 	1 	Carrier Waveform select
+11 	1 	Carrier Key scale level
+12 	1 	Carrier Output level
+13 	1 	Unused
+14 	2 	Base note offset. This is used to offset the MIDI note values. Several of the
+		GENMIDI instruments have a base note offset of -12, causing all notes to be 
+		offset down by one octave. 
+*/
+struct genmidi_inst_t
+{
+	uint8_t	mChar,
+			mAttack,
+			mSus,
+			mScale,
+			mWave,
+			mOutput,
+			nConn,
+			cChar,
+			cAttack,
+			cSus,
+			cScale,
+			cWave,
+			cOutput,
+			nUnused;
+	int16_t nOffset;
 };
 #pragma pack()
 
@@ -121,31 +160,12 @@ Voice-mail (Czech language only, not recommended; weekends only):
 #define CHANNELS	16		// total channels 0..CHANNELS-1
 #define PERCUSSION	15		// percussion channel
 
-/* OPL2 instrument */
-struct OPL2instrument {
-/*00*/	uint8_t trem_vibr_1;	/* OP 1: tremolo/vibrato/sustain/KSR/multi */
-/*01*/	uint8_t	att_dec_1;		/* OP 1: attack rate/decay rate */
-/*02*/	uint8_t	sust_rel_1;		/* OP 1: sustain level/release rate */
-/*03*/	uint8_t	wave_1;			/* OP 1: waveform select */
-/*04*/	uint8_t	scale_1;		/* OP 1: key scale level */
-/*05*/	uint8_t	level_1;		/* OP 1: output level */
-/*06*/	uint8_t	feedback;		/* feedback/AM-FM (both operators) */
-/*07*/	uint8_t trem_vibr_2;	/* OP 2: tremolo/vibrato/sustain/KSR/multi */
-/*08*/	uint8_t	att_dec_2;		/* OP 2: attack rate/decay rate */
-/*09*/	uint8_t	sust_rel_2;		/* OP 2: sustain level/release rate */
-/*0A*/	uint8_t	wave_2;			/* OP 2: waveform select */
-/*0B*/	uint8_t	scale_2;		/* OP 2: key scale level */
-/*0C*/	uint8_t	level_2;		/* OP 2: output level */
-/*0D*/	uint8_t	unused;
-/*0E*/	int16_t	basenote;		/* base note offset */
-};
-
 /* OP2 instrument file entry */
 struct OP2instrEntry {
 /*00*/	int16_t	flags;				// see FL_xxx below
 /*02*/	int8_t	finetune;			// finetune value for 2-voice sounds
 /*03*/	int8_t	note;				// note # for fixed instruments
-/*04*/	struct OPL2instrument instr[2];	// instruments
+/*04*/	struct genmidi_inst_t instr[2];	// instruments
 };
 
 #define FL_FIXED_PITCH	0x0001		// note has fixed pitch (see below)
@@ -190,10 +210,10 @@ struct OPLio {
 	void	OPLwriteFreq(uint32_t channel, uint32_t freq, uint32_t octave, uint32_t keyon);
 	uint32_t OPLconvertVolume(uint32_t data, uint32_t volume);
 	uint32_t OPLpanVolume(uint32_t volume, int pan);
-	void	OPLwriteVolume(uint32_t channel, struct OPL2instrument *instr, uint32_t volume);
-	void	OPLwritePan(uint32_t channel, struct OPL2instrument *instr, int pan);
-	void	OPLwriteInstrument(uint32_t channel, struct OPL2instrument *instr);
-	void	OPLwriteInstrument(uint32_t channel, struct inst_t *instr);
+	void	OPLwriteVolume(uint32_t channel, struct genmidi_inst_t *instr, uint32_t volume);
+	void	OPLwritePan(uint32_t channel, struct genmidi_inst_t *instr, int pan);
+	void	OPLwriteInstrument(uint32_t channel, struct genmidi_inst_t *instr);
+	void	OPLwriteInstrument(uint32_t channel, struct audiot_inst_t *instr);
 	void	OPLshutup(void);
 	void	OPLwriteInitState(bool initopl3);
 
@@ -207,30 +227,6 @@ struct OPLio {
 	uint32_t OPLchannels;
 	uint32_t NumChips;
 	//bool IsOPL3;
-};
-
-enum MUSctrl {
-    ctrlPatch = 0,
-    ctrlBank,
-    ctrlModulation,
-    ctrlVolume,
-    ctrlPan,
-    ctrlExpression,
-    ctrlReverb,
-    ctrlChorus,
-    ctrlSustainPedal,
-    ctrlSoftPedal,
-	ctrlRPNHi,
-	ctrlRPNLo,
-	ctrlNRPNHi,
-	ctrlNRPNLo,
-	ctrlDataEntryHi,
-	ctrlDataEntryLo,
-
-	ctrlSoundsOff,
-    ctrlNotesOff,
-    ctrlMono,
-    ctrlPoly,
 };
 
 //#endif // __MUSLIB_H_
@@ -256,11 +252,6 @@ public:
 
 	uint32_t MLtime;
 
-	void OPLplayNote(uint32_t channel, uint8_t note, int volume);
-	void OPLreleaseNote(uint32_t channel, uint8_t note);
-	void OPLpitchWheel(uint32_t channel, int pitch);
-	void OPLchangeControl(uint32_t channel, uint8_t controller, int value);
-	void OPLprogramChange(uint32_t channel, int value);
 	void OPLresetControllers(uint32_t channel, int vol);
 	void OPLplayMusic(int vol);
 	void OPLstopMusic();
@@ -303,20 +294,12 @@ protected:
 		int32_t	pitch;			/* pitch-wheel value */
 		int32_t	volume;			/* note volume */
 		int32_t	realvolume;		/* adjusted note volume */
-		struct  OPL2instrument *instr;	/* current instrument */
+		genmidi_inst_t *instr;	/* current instrument */
 		uint32_t time;			/* note start time */
 	} channels[MAXCHANNELS];
 
 	void writeFrequency(uint32_t slot, uint32_t note, int pitch, uint32_t keyOn);
-	void writeModulation(uint32_t slot, struct OPL2instrument *instr, int state);
-	uint32_t calcVolume(uint32_t channelVolume, uint32_t channelExpression, uint32_t noteVolume);
-	int occupyChannel(uint32_t slot, uint32_t channel,
-						 int note, int volume, struct OP2instrEntry *instrument, uint8_t secondary);
 	int releaseChannel(uint32_t slot, uint32_t killed);
-	int releaseSustain(uint32_t channel);
-	int findFreeChannel(uint32_t flag, uint32_t channel, uint8_t note);
-	struct OP2instrEntry *getInstrument(uint32_t channel, uint8_t note);
-
 
 	OPLmusicFile() {}
 	int PlayTick();

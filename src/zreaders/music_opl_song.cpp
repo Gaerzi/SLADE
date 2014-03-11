@@ -245,20 +245,20 @@ uint32_t OPLio::OPLpanVolume(uint32_t volume, int pan)
 /*
 * Write volume data to a channel
 */
-void OPLio::OPLwriteVolume(uint32_t channel, struct OPL2instrument *instr, uint32_t volume)
+void OPLio::OPLwriteVolume(uint32_t channel, genmidi_inst_t *instr, uint32_t volume)
 {
 	if (instr != 0)
 	{
-		OPLwriteChannel(0x40, channel, ((instr->feedback & 1) ?
-			OPLconvertVolume(instr->level_1, volume) : instr->level_1) | instr->scale_1,
-			OPLconvertVolume(instr->level_2, volume) | instr->scale_2);
+		OPLwriteChannel(0x40, channel, ((instr->nConn & 1) ?
+			OPLconvertVolume(instr->mOutput, volume) : instr->mOutput) | instr->mScale,
+			OPLconvertVolume(instr->cOutput, volume) | instr->cScale);
 	}
 }
 
 /*
 * Write pan (balance) data to a channel
 */
-void OPLio::OPLwritePan(uint32_t channel, struct OPL2instrument *instr, int pan)
+void OPLio::OPLwritePan(uint32_t channel, genmidi_inst_t *instr, int pan)
 {
 	if (instr != 0)
 	{
@@ -267,7 +267,7 @@ void OPLio::OPLwritePan(uint32_t channel, struct OPL2instrument *instr, int pan)
 		else if (pan > 36) bits = 0x20;	// right
 		else bits = 0x30;			// both
 
-		OPLwriteValue(0xC0, channel, instr->feedback | bits);
+		OPLwriteValue(0xC0, channel, instr->nConn | bits);
 
 		// Set real panning if we're using emulated chips.
 		int chanper = /*IsOPL3 ?*/ OPL3CHANNELS /*: OPL2CHANNELS*/;
@@ -286,30 +286,6 @@ void OPLio::OPLwritePan(uint32_t channel, struct OPL2instrument *instr, int pan)
 }
 
 /*
-* Write an instrument to a channel
-*
-* Instrument layout:
-*
-*   Operator1  Operator2  Descr.
-*    data[0]    data[7]   reg. 0x20 - tremolo/vibrato/sustain/KSR/multi
-*    data[1]    data[8]   reg. 0x60 - attack rate/decay rate
-*    data[2]    data[9]   reg. 0x80 - sustain level/release rate
-*    data[3]    data[10]  reg. 0xE0 - waveform select
-*    data[4]    data[11]  reg. 0x40 - key scale level
-*    data[5]    data[12]  reg. 0x40 - output level (bottom 6 bits only)
-*          data[6]        reg. 0xC0 - feedback/AM-FM (both operators)
-*/
-void OPLio::OPLwriteInstrument(uint32_t channel, OPL2instrument *instr)
-{
-	OPLwriteChannel(0x40, channel, 0x3F, 0x3F);		// no volume
-	OPLwriteChannel(0x20, channel, instr->trem_vibr_1, instr->trem_vibr_2);
-	OPLwriteChannel(0x60, channel, instr->att_dec_1,   instr->att_dec_2);
-	OPLwriteChannel(0x80, channel, instr->sust_rel_1,  instr->sust_rel_2);
-	OPLwriteChannel(0xE0, channel, instr->wave_1,      instr->wave_2);
-	OPLwriteValue  (0xC0, channel, instr->feedback | 0x30);
-}
-
-/*
 ;	Stuff for the AdLib
 ;	Operator registers
 alChar				=	20h
@@ -325,15 +301,24 @@ alFeedCon			=	0c0h
 alEffects			=	0bdh
 */
 
-void OPLio::OPLwriteInstrument(uint32_t channel, inst_t *instr)
+void OPLio::OPLwriteInstrument(uint32_t channel, audiot_inst_t *instr)
 {
 	OPLwriteChannel(0x20, channel, instr->mChar,    instr->cChar);
 	OPLwriteChannel(0x40, channel, instr->mScale,   instr->cScale);
 	OPLwriteChannel(0x60, channel, instr->mAttack,  instr->cAttack);
 	OPLwriteChannel(0x80, channel, instr->mSus,     instr->cSus);
 	OPLwriteChannel(0xE0, channel, instr->mWave,    instr->cWave);
-	//OPLwriteValue  (0xC0, channel, instr->nConn | 0x30);
 	OPLwriteValue  (0xC0, channel, 0x30);
+}
+
+void OPLio::OPLwriteInstrument(uint32_t channel, genmidi_inst_t *instr)
+{
+	OPLwriteChannel(0x20, channel, instr->mChar,    instr->cChar);
+	OPLwriteChannel(0x40, channel, instr->mScale,   instr->cScale);
+	OPLwriteChannel(0x60, channel, instr->mAttack,  instr->cAttack);
+	OPLwriteChannel(0x80, channel, instr->mSus,     instr->cSus);
+	OPLwriteChannel(0xE0, channel, instr->mWave,    instr->cWave);
+	OPLwriteValue  (0xC0, channel, instr->nConn | 0x30);
 }
 
 /*
@@ -420,74 +405,6 @@ void OPLmusicFile::writeFrequency(uint32_t slot, uint32_t note, int pitch, uint3
 	io->OPLwriteFreq (slot, note, pitch, keyOn);
 }
 
-void OPLmusicFile::writeModulation(uint32_t slot, struct OPL2instrument *instr, int state)
-{
-	if (state)
-		state = 0x40;	/* enable Frequency Vibrato */
-	io->OPLwriteChannel(0x20, slot,
-		(instr->feedback & 1) ? (instr->trem_vibr_1 | state) : instr->trem_vibr_1,
-		instr->trem_vibr_2 | state);
-}
-
-uint32_t OPLmusicFile::calcVolume(uint32_t channelVolume, uint32_t channelExpression, uint32_t noteVolume)
-{
-	noteVolume = ((uint32_t)channelVolume * channelExpression * noteVolume) / (127*127);
-	if (noteVolume > 127)
-		return 127;
-	else
-		return noteVolume;
-}
-
-int OPLmusicFile::occupyChannel(uint32_t slot, uint32_t channel,
-						 int note, int volume, struct OP2instrEntry *instrument, uint8_t secondary)
-{
-	struct OPL2instrument *instr;
-	struct channelEntry *ch = &channels[slot];
-
-	ch->channel = channel;
-	ch->note = note;
-	ch->flags = secondary ? CH_SECONDARY : 0;
-	if (driverdata.channelModulation[channel] >= MOD_MIN)
-		ch->flags |= CH_VIBRATO;
-	ch->time = MLtime;
-	if (volume == -1)
-		volume = driverdata.channelLastVolume[channel];
-	else
-		driverdata.channelLastVolume[channel] = volume;
-	ch->realvolume = calcVolume(driverdata.channelVolume[channel],
-		driverdata.channelExpression[channel], ch->volume = volume);
-	if (instrument->flags & FL_FIXED_PITCH)
-		note = instrument->note;
-	else if (channel == PERCUSSION)
-		note = 60;			// C-5
-	if (secondary && (instrument->flags & FL_DOUBLE_VOICE))
-		ch->finetune = (instrument->finetune - 0x80) >> 1;
-	else
-		ch->finetune = 0;
-	ch->pitch = ch->finetune + driverdata.channelPitch[channel];
-	if (secondary)
-		instr = &instrument->instr[1];
-	else
-		instr = &instrument->instr[0];
-	ch->instr = instr;
-	if (channel != PERCUSSION && !(instrument->flags & FL_FIXED_PITCH))
-	{
-		if ( (note += instr->basenote) < 0)
-			while ((note += 12) < 0) {}
-		else if (note > HIGHEST_NOTE)
-			while ((note -= 12) > HIGHEST_NOTE) {}
-	}
-	ch->realnote = note;
-
-	io->OPLwriteInstrument(slot, instr);
-	if (ch->flags & CH_VIBRATO)
-		writeModulation(slot, instr, 1);
-	io->OPLwritePan(slot, instr, driverdata.channelPan[channel]);
-	io->OPLwriteVolume(slot, instr, ch->realvolume);
-	writeFrequency(slot, note, ch->pitch, 1);
-	return slot;
-}
-
 int OPLmusicFile::releaseChannel(uint32_t slot, uint32_t killed)
 {
 	struct channelEntry *ch = &channels[slot];
@@ -503,265 +420,6 @@ int OPLmusicFile::releaseChannel(uint32_t slot, uint32_t killed)
 	return slot;
 }
 
-int OPLmusicFile::releaseSustain(uint32_t channel)
-{
-	uint32_t i;
-	uint32_t id = channel;
-
-	for(i = 0; i < io->OPLchannels; i++)
-	{
-		if (channels[i].channel == id && channels[i].flags & CH_SUSTAIN)
-			releaseChannel(i, 0);
-	}
-	return 0;
-}
-
-int OPLmusicFile::findFreeChannel(uint32_t flag, uint32_t channel, uint8_t note)
-{
-	uint32_t i;
-
-	uint32_t bestfit = 0;
-	uint32_t bestvoice = 0;
-
-	for (i = 0; i < io->OPLchannels; ++i)
-	{
-		uint32_t magic;
-
-		magic = ((channels[i].flags & CH_FREE) << 24) |
-				((channels[i].note == note &&
-					channels[i].channel == channel) << 30) |
-				((channels[i].flags & CH_SUSTAIN) << 28) |
-				((MLtime - channels[i].time) & 0x1fffffff);
-		if (magic > bestfit)
-		{
-			bestfit = magic;
-			bestvoice = i;
-		}
-	}
-	if ((flag & 1) && !(bestfit & 0x80000000))
-	{ // No free channels good enough
-		return -1;
-	}
-	releaseChannel (bestvoice, 1);
-	return bestvoice;
-}
-
-struct OP2instrEntry *OPLmusicFile::getInstrument(uint32_t channel, uint8_t note)
-{
-	uint32_t instrnumber;
-
-	if (channel == PERCUSSION)
-	{
-		if (note < 35 || note > 81)
-			return NULL;		/* wrong percussion number */
-		instrnumber = note + (128-35);
-	}
-	else
-	{
-		instrnumber = driverdata.channelInstr[channel];
-	}
-
-	if (OPLinstruments)
-		return &OPLinstruments[instrnumber];
-	else
-		return NULL;
-}
-
-
-// code 1: play note
-void OPLmusicFile::OPLplayNote(uint32_t channel, uint8_t note, int volume)
-{
-	int i;
-	struct OP2instrEntry *instr;
-
-	if (volume == 0)
-	{
-		OPLreleaseNote (channel, note);
-		return;
-	}
-
-	if ( (instr = getInstrument(channel, note)) == NULL )
-		return;
-
-	if ( (i = findFreeChannel((channel == PERCUSSION) ? 2 : 0, channel, note)) != -1)
-	{
-		occupyChannel(i, channel, note, volume, instr, 0);
-		if ((instr->flags & FL_DOUBLE_VOICE) && !opl_singlevoice)
-		{
-			if ( (i = findFreeChannel((channel == PERCUSSION) ? 3 : 1, channel, note)) != -1)
-				occupyChannel(i, channel, note, volume, instr, 1);
-		}
-	}
-}
-
-// code 0: release note
-void OPLmusicFile::OPLreleaseNote(uint32_t channel, uint8_t note)
-{
-	uint32_t i;
-	uint32_t id = channel;
-	uint32_t sustain = driverdata.channelSustain[channel];
-
-	for(i = 0; i < io->OPLchannels; i++)
-	{
-		if (channels[i].channel == id && channels[i].note == note)
-		{
-			if (sustain < 0x40)
-				releaseChannel(i, 0);
-			else
-				channels[i].flags |= CH_SUSTAIN;
-		}
-	}
-}
-
-// code 2: change pitch wheel (bender)
-void OPLmusicFile::OPLpitchWheel(uint32_t channel, int pitch)
-{
-	uint32_t i;
-	uint32_t id = channel;
-
-	// Convert pitch from 14-bit to 7-bit, then scale it, since the player
-	// code only understands sensitivities of 2 semitones.
-	pitch = (pitch - 8192) * driverdata.channelPitchSens[channel] / (200 * 128) + 64;
-	driverdata.channelPitch[channel] = pitch;
-	for(i = 0; i < io->OPLchannels; i++)
-	{
-		struct channelEntry *ch = &channels[i];
-		if (ch->channel == id)
-		{
-			ch->time = MLtime;
-			ch->pitch = ch->finetune + pitch;
-			writeFrequency(i, ch->realnote, ch->pitch, 1);
-		}
-	}
-}
-
-// code 4: change control
-void OPLmusicFile::OPLchangeControl(uint32_t channel, uint8_t controller, int value)
-{
-	uint32_t i;
-	uint32_t id = channel;
-
-	switch (controller)
-	{
-	case ctrlPatch:			/* change instrument */
-		OPLprogramChange(channel, value);
-		break;
-
-	case ctrlModulation:
-		driverdata.channelModulation[channel] = value;
-		for(i = 0; i < io->OPLchannels; i++)
-		{
-			struct channelEntry *ch = &channels[i];
-			if (ch->channel == id)
-			{
-				uint8_t flags = ch->flags;
-				ch->time = MLtime;
-				if (value >= MOD_MIN)
-				{
-					ch->flags |= CH_VIBRATO;
-					if (ch->flags != flags)
-						writeModulation(i, ch->instr, 1);
-				} else {
-					ch->flags &= ~CH_VIBRATO;
-					if (ch->flags != flags)
-						writeModulation(i, ch->instr, 0);
-				}
-			}
-		}
-		break;
-
-	case ctrlVolume:		/* change volume */
-		driverdata.channelVolume[channel] = value;
-		/* fall-through */
-	case ctrlExpression:	/* change expression */
-		if (controller == ctrlExpression)
-		{
-			driverdata.channelExpression[channel] = value;
-		}
-		for(i = 0; i < io->OPLchannels; i++)
-		{
-			struct channelEntry *ch = &channels[i];
-			if (ch->channel == id)
-			{
-				ch->time = MLtime;
-				ch->realvolume = calcVolume(driverdata.channelVolume[channel],
-					driverdata.channelExpression[channel], ch->volume);
-				io->OPLwriteVolume(i, ch->instr, ch->realvolume);
-			}
-		}
-		break;
-
-	case ctrlPan:			/* change pan (balance) */
-		driverdata.channelPan[channel] = value -= 64;
-		for(i = 0; i < io->OPLchannels; i++)
-		{
-			struct channelEntry *ch = &channels[i];
-			if (ch->channel == id)
-			{
-				ch->time = MLtime;
-				io->OPLwritePan(i, ch->instr, value);
-			}
-		}
-		break;
-
-	case ctrlSustainPedal:		/* change sustain pedal (hold) */
-		driverdata.channelSustain[channel] = value;
-		if (value < 0x40)
-			releaseSustain(channel);
-		break;
-
-	case ctrlNotesOff:			/* turn off all notes that are not sustained */
-		for (i = 0; i < io->OPLchannels; ++i)
-		{
-			if (channels[i].channel == id)
-			{
-				if (driverdata.channelSustain[id] < 0x40)
-					releaseChannel(i, 0);
-				else
-					channels[i].flags |= CH_SUSTAIN;
-			}
-		}
-		break;
-
-	case ctrlSoundsOff:			/* release all notes for this channel */
-		for (i = 0; i < io->OPLchannels; ++i)
-		{
-			if (channels[i].channel == id)
-			{
-				releaseChannel(i, 0);
-			}
-		}
-		break;
-
-	case ctrlRPNHi:
-		driverdata.channelRPN[id] = (driverdata.channelRPN[id] & 0x007F) | (value << 7);
-		break;
-
-	case ctrlRPNLo:
-		driverdata.channelRPN[id] = (driverdata.channelRPN[id] & 0x3F80) | value;
-		break;
-
-	case ctrlNRPNLo:
-	case ctrlNRPNHi:
-		driverdata.channelRPN[id] = 0x3FFF;
-		break;
-
-	case ctrlDataEntryHi:
-		if (driverdata.channelRPN[id] == 0)
-		{
-			driverdata.channelPitchSens[id] = value * 100 + (driverdata.channelPitchSens[id] % 100);
-		}
-		break;
-
-	case ctrlDataEntryLo:
-		if (driverdata.channelRPN[id] == 0)
-		{
-			driverdata.channelPitchSens[id] = value + (driverdata.channelPitchSens[id] / 100) * 100;
-		}
-		break;
-	}
-}
-
 void OPLmusicFile::OPLresetControllers(uint32_t chan, int vol)
 {
 	driverdata.channelVolume[chan] = vol;
@@ -771,11 +429,6 @@ void OPLmusicFile::OPLresetControllers(uint32_t chan, int vol)
 	driverdata.channelPitch[chan] = 64;
 	driverdata.channelRPN[chan] = 0x3fff;
 	driverdata.channelPitchSens[chan] = 200;
-}
-
-void OPLmusicFile::OPLprogramChange(uint32_t channel, int value)
-{
-	driverdata.channelInstr[channel] = value;
 }
 
 void OPLmusicFile::OPLplayMusic(int vol)
