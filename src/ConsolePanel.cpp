@@ -88,10 +88,9 @@ void ConsolePanel::initLayout()
 	Layout();
 
 	// Set console font to default+monospace
-	wxFont f = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
-	wxFont console_font(f.GetPointSize(), wxFONTFAMILY_MODERN, f.GetStyle(), f.GetWeight());
-	text_log->SetFont(console_font);
-	text_command->SetFont(console_font);
+	wxFont font = getMonospaceFont(wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT));
+	text_log->SetFont(font);
+	text_command->SetFont(font);
 }
 
 /* ConsolePanel::onAnnouncement

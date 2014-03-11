@@ -66,13 +66,11 @@ VirtualListView::VirtualListView(wxWindow* parent)
 	col_search = 0;
 	memset(cols_editable, 0, 100);
 
+	// Set monospace font if configured
+	font_normal = new wxFont(wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT));
+	font_monospace = new wxFont(getMonospaceFont(wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT)));
 	if (list_font_monospace)
-	{
-		wxFont lfont = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
-		if (!lfont.SetFaceName("Consolas") && !lfont.SetFaceName("Lucida Console"))
-			lfont.SetFamily(wxFONTFAMILY_MODERN);
-		item_attr->SetFont(lfont);
-	}
+		item_attr->SetFont(*font_monospace);
 
 	// Bind events
 #ifndef __WXMSW__
@@ -91,6 +89,8 @@ VirtualListView::VirtualListView(wxWindow* parent)
 VirtualListView::~VirtualListView()
 {
 	delete item_attr;
+	delete font_monospace;
+	delete font_normal;
 }
 
 /* VirtualListView::sendSelectionChangedEvent
@@ -485,7 +485,7 @@ void VirtualListView::onKeyChar(wxKeyEvent& e)
 		}
 	}
 
-	if (isRealChar)
+	if (isRealChar && e.GetModifiers() == 0)
 	{
 		// Get currently focused item (or first if nothing is focused)
 		long focus = getFocus();
@@ -507,13 +507,16 @@ void VirtualListView::onKeyChar(wxKeyEvent& e)
 	else
 	{
 		search = "";
-
+#ifdef __WXGTK__
+		e.Skip();
+#else
 		// Only want to do default action on navigation key
 		if (e.GetKeyCode() == WXK_UP || e.GetKeyCode() == WXK_DOWN ||
 		        e.GetKeyCode() == WXK_PAGEUP || e.GetKeyCode() == WXK_PAGEDOWN ||
 		        e.GetKeyCode() == WXK_HOME || e.GetKeyCode() == WXK_END ||
 		        e.GetKeyCode() == WXK_TAB)
 			e.Skip();
+#endif
 	}
 }
 

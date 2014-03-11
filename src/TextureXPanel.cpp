@@ -1085,14 +1085,26 @@ bool TextureXPanel::modifyOffsets()
 	for (unsigned a = 0; a < selec_num.size(); ++a)
 	{
 		// Get texture
+		bool current = false;
 		CTexture* ctex = texturex.getTexture(selec_num[a]);
+		if (ctex == tex_current)
+		{
+			// Texture is currently open in the editor
+			ctex = texture_editor->getTexture();
+			current = true;
+		}
 
 		// Calculate and apply new offsets
 		point2_t offsets = mod.calculateOffsets(ctex->getOffsetX(), ctex->getOffsetY(), ctex->getWidth(), ctex->getHeight());
 		ctex->setOffsetX(offsets.x);
-		ctex->setOffsetX(offsets.y);
+		ctex->setOffsetY(offsets.y);
 
 		ctex->setState(1);
+		modified = true;
+
+		// If it was the current texture, update controls
+		if (current)
+			texture_editor->updateTextureControls();
 	}
 
 	return true;

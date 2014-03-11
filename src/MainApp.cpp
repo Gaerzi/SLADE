@@ -72,7 +72,7 @@ namespace Global
 {
 	string error = "";
 
-	string version = "3.1.0 beta 3"
+	string version = "3.1.0 beta 4"
 #ifdef GIT_DESCRIPTION
 	                 " (" GIT_DESCRIPTION ")"
 #endif
@@ -99,6 +99,12 @@ CVAR(Int, log_verbosity, 1, CVAR_SAVE)
 CVAR(Int, temp_location, 0, CVAR_SAVE)
 CVAR(String, temp_location_custom, "", CVAR_SAVE)
 CVAR(Bool, setup_wizard_run, false, CVAR_SAVE)
+
+
+/*******************************************************************
+ * EXTERNAL VARIABLES
+ *******************************************************************/
+EXTERN_CVAR(Bool, map_show_selection_numbers)
 
 
 /*******************************************************************
@@ -511,9 +517,11 @@ void MainApp::initActions()
 	// ArchiveEntryList
 	new SAction("aelt_sizecol", "Size", "", "Show the size column", "", SAction::CHECK);
 	new SAction("aelt_typecol", "Type", "", "Show the type column", "", SAction::CHECK);
+	new SAction("aelt_indexcol", "Index", "", "Show the index column", "", SAction::CHECK);
 	new SAction("aelt_hrules", "Horizontal Rules", "", "Show horizontal rules between entries", "", SAction::CHECK);
 	new SAction("aelt_vrules", "Vertical Rules", "", "Show vertical rules between columns", "", SAction::CHECK);
 	new SAction("aelt_bgcolour", "Colour by Type", "", "Colour item background by entry type", "", SAction::CHECK);
+	new SAction("aelt_bgalt", "Alternating Row Colour", "", "Show alternating row colours", "", SAction::CHECK);
 
 	// TextureEditorPanel
 	new SAction("txed_new", "New Texture", "t_tex_new", "Create a new, empty texture");
@@ -619,11 +627,18 @@ void MainApp::initActions()
 	new SAction("mapw_item_properties", "Properties", "t_properties", "Edit the currently selected item's properties");
 	new SAction("mapw_camera_set", "Move 3d Camera Here", "", "Set the current position of the 3d mode camera to the cursor position");
 	new SAction("mapw_clear_selection", "Clear Selection", "", "Clear the current selection, if any");
+	new SAction("mapw_show_fullmap", "Show Full Map", "", "Zooms out so that the full map is visible", "kb:me2d_show_all");
+	new SAction("mapw_show_item", "Show Item...", "", "Zoom and scroll to show a map item");
+	new SAction("mapw_toggle_selection_numbers", "Show Selection Numbers", "", "Show/hide selection numbers", "kb:me2d_toggle_selection_numbers", SAction::CHECK);
 
 	// Script editor
 	new SAction("mapw_script_save", "Save", "t_save", "Save changes to scripts");
 	new SAction("mapw_script_compile", "Compile", "t_compile", "Compile scripts");
 	new SAction("mapw_script_jumpto", "Jump To...", "t_up", "Jump to a specific script/function");
+
+
+	// Init checked actions
+	getAction("mapw_toggle_selection_numbers")->toggled = map_show_selection_numbers;
 }
 
 /* MainApp::OnInit
@@ -1062,25 +1077,36 @@ void MainApp::onMenu(wxCommandEvent& e)
 {
 	// Find applicable action
 	string action = "";
+	SAction* s_action = NULL;
 	for (unsigned a = 0; a < actions.size(); a++)
 	{
 		if (actions[a]->getWxId() == e.GetId())
 		{
 			action = actions[a]->getId();
+			s_action = actions[a];
 			break;
 		}
 	}
 
 	// If action is valid, send to all action handlers
+	bool handled = false;
 	if (!action.IsEmpty())
 	{
 		current_action = action;
-		doAction(action);
+		handled = doAction(action);
 		current_action = "";
+
+		// Check if triggering object is a menu item
+		if (e.GetEventObject() && e.GetEventObject()->IsKindOf(wxCLASSINFO(wxMenuItem)))
+		{
+			wxMenuItem* item = (wxMenuItem*)e.GetEventObject();
+			if (s_action->type == SAction::CHECK)
+				item->Check(s_action->toggled);
+		}
 	}
 
-	// Otherwise, let something else handle it
-	else
+	// If not handled, let something else handle it
+	if (!handled)
 		e.Skip();
 }
 
