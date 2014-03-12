@@ -61,14 +61,6 @@ OPLio::~OPLio()
 {
 }
 
-void OPLio::SetClockRate(double samples_per_tick)
-{
-}
-
-void OPLio::WriteDelay(int ticks)
-{
-}
-
 void OPLio::OPLwriteReg(int which, uint32_t reg, uint8_t data)
 {
 	if (1)
@@ -373,15 +365,8 @@ void OPLio::OPLdeinit(void)
 	}
 }
 
-
-#define MOD_MIN		40		/* vibrato threshold */
-#define HIGHEST_NOTE 127
-
 int OPLmusicFile::releaseChannel(uint32_t slot, uint32_t killed)
 {
-	struct channelEntry *ch = &channels[slot];
-	ch->time = MLtime;
-	io->OPLwriteFreq(slot, ch->realnote, ch->pitch, 0);
 	io->OPLwriteChannel(0x80, slot, 0x0F, 0x0F);  // release rate - fastest
 	io->OPLwriteChannel(0x40, slot, 0x3F, 0x3F);  // no volume
 	return slot;
@@ -591,7 +576,6 @@ void OPLmusicFile::Restart ()
 		io->OPLwriteInstrument(0, &sound->inst);
 		break;
 	}
-	io->SetClockRate(SamplesPerTick);
 }
 
 bool OPLmusicFile::ServiceStream (void *buff, int numbytes)
@@ -645,7 +629,6 @@ bool OPLmusicFile::ServiceStream (void *buff, int numbytes)
 			else
 			{
 				prevEnded = false;
-				io->WriteDelay(next);
 				NextTickIn += SamplesPerTick * next;
 				assert (NextTickIn >= 0);
 				MLtime += next;
@@ -754,7 +737,6 @@ int OPLmusicFile::PlayTick ()
 				if (data == 0)
 				{
 					SamplesPerTick = LittleShort(*(uint16_t *)(score)) / ADLIB_CLOCK_MUL;
-					io->SetClockRate(SamplesPerTick);
 					score += 2;
 				}
 				else if (data == 1)

@@ -161,7 +161,6 @@ Voice-mail (Czech language only, not recommended; weekends only):
 #define OPL2CHANNELS	9
 #define OPL3CHANNELS	18
 #define MAXOPL2CHIPS	8
-#define MAXCHANNELS		(OPL2CHANNELS * MAXOPL2CHIPS)
 
 struct OPLio {
 	virtual ~OPLio();
@@ -179,8 +178,6 @@ struct OPLio {
 	virtual int		OPLinit(uint32_t numchips, bool stereo=false, bool initopl3=false);
 	virtual void	OPLdeinit(void);
 	virtual void	OPLwriteReg(int which, uint32_t reg, uint8_t data);
-	virtual void	SetClockRate(double samples_per_tick);
-	virtual void	WriteDelay(int ticks);
 
 	class OPLEmul *chips[MAXOPL2CHIPS];
 	uint32_t OPLchannels;
@@ -228,20 +225,6 @@ protected:
 	double LastOffset;
 	bool FullPan;
 	uint8_t Octave;	// Octave, used by AudioT format;
-
-	/* OPL channel (voice) data */
-	struct channelEntry {
-		uint8_t	channel;		/* MUS channel number */
-		uint8_t	note;			/* note number */
-		uint8_t	flags;			/* see CH_xxx below */
-		uint8_t	realnote;		/* adjusted note number */
-		int8_t	finetune;		/* frequency fine-tune */
-		int32_t	pitch;			/* pitch-wheel value */
-		int32_t	volume;			/* note volume */
-		int32_t	realvolume;		/* adjusted note volume */
-		genmidi_inst_t *instr;	/* current instrument */
-		uint32_t time;			/* note start time */
-	} channels[MAXCHANNELS];
 
 	int releaseChannel(uint32_t slot, uint32_t killed);
 
