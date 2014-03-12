@@ -408,27 +408,6 @@ int OPLmusicFile::releaseChannel(uint32_t slot, uint32_t killed)
 	return slot;
 }
 
-void OPLmusicFile::OPLresetControllers(uint32_t chan, int vol)
-{
-	driverdata.channelVolume[chan] = vol;
-	driverdata.channelExpression[chan] = 127;
-	driverdata.channelSustain[chan] = 0;
-	driverdata.channelLastVolume[chan] = 64;
-	driverdata.channelPitch[chan] = 64;
-	driverdata.channelRPN[chan] = 0x3fff;
-	driverdata.channelPitchSens[chan] = 200;
-}
-
-void OPLmusicFile::OPLplayMusic(int vol)
-{
-	uint32_t i;
-
-	for (i = 0; i < CHANNELS; i++)
-	{
-		OPLresetControllers(i, vol);
-	}
-}
-
 void OPLmusicFile::OPLstopMusic()
 {
 	uint32_t i;
@@ -644,7 +623,6 @@ void OPLmusicFile::Restart ()
 		return;
 	}
 	OPLstopMusic ();
-	OPLplayMusic (127);
 	MLtime = 0;
 	playingcount = 0;
 	LastOffset = 0;

@@ -157,8 +157,6 @@ Voice-mail (Czech language only, not recommended; weekends only):
 
 /* Global Definitions */
 
-#define CHANNELS	16		// total channels 0..CHANNELS-1
-
 /* OP2 instrument file entry */
 struct OP2instrEntry {
 /*00*/	int16_t	flags;				// see FL_xxx below
@@ -175,16 +173,6 @@ struct OP2instrEntry {
 #define OPL3CHANNELS	18
 #define MAXOPL2CHIPS	8
 #define MAXCHANNELS		(OPL2CHANNELS * MAXOPL2CHIPS)
-
-struct OPLdata {
-	uint8_t	 channelVolume[CHANNELS];		// volume
-	uint8_t	 channelLastVolume[CHANNELS];	// last volume
-	int8_t	 channelPitch[CHANNELS];			// pitch wheel, 64=normal
-	uint8_t	 channelSustain[CHANNELS];		// sustain pedal value
-	uint16_t channelPitchSens[CHANNELS];		// pitch sensitivity, 2=default
-	uint16_t channelRPN[CHANNELS];			// RPN number for data entry
-	uint8_t	 channelExpression[CHANNELS];	// expression
-};
 
 struct OPLio {
 	virtual ~OPLio();
@@ -228,15 +216,12 @@ public:
 	uint8_t *score;
 	uint8_t *scoredata;
 	int playingcount;
-	OPLdata driverdata;
 	OPLio *io;
 
 	struct OP2instrEntry *OPLinstruments;
 
 	uint32_t MLtime;
 
-	void OPLresetControllers(uint32_t channel, int vol);
-	void OPLplayMusic(int vol);
 	void OPLstopMusic();
 
 	int OPLloadBank (MemChunk &data);
