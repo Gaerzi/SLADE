@@ -71,7 +71,7 @@ void OPLio::WriteDelay(int ticks)
 
 void OPLio::OPLwriteReg(int which, uint32_t reg, uint8_t data)
 {
-	if (1)//IsOPL3)
+	if (1)
 	{
 		reg |= (which & 1) << 8;
 		which >>= 1;
@@ -270,7 +270,7 @@ void OPLio::OPLwritePan(uint32_t channel, genmidi_inst_t *instr, int pan)
 		OPLwriteValue(0xC0, channel, instr->nConn | bits);
 
 		// Set real panning if we're using emulated chips.
-		int chanper = /*IsOPL3 ?*/ OPL3CHANNELS /*: OPL2CHANNELS*/;
+		int chanper = OPL3CHANNELS;
 		int which = channel / chanper;
 		if (chips[which] != NULL)
 		{
@@ -344,14 +344,12 @@ int OPLio::OPLinit(uint32_t numchips, bool stereo, bool initopl3)
 {
 	assert(numchips >= 1 && numchips <= countof(chips));
 	uint32_t i;
-	//IsOPL3 = (opl_core == 1 || opl_core == 2);
 
 	memset(chips, 0, sizeof(chips));
-	//if (IsOPL3)
-		numchips = (numchips + 1) >> 1;
+	numchips = (numchips + 1) >> 1;
 	for (i = 0; i < numchips; ++i)
 	{
-		OPLEmul *chip = /*IsOPL3 ? (opl_core == 1 ? DBOPLCreate(stereo) :*/ JavaOPLCreate(stereo)/*) : YM3812Create(stereo)*/;
+		OPLEmul *chip = JavaOPLCreate(stereo);
 		if (chip == NULL)
 		{
 			break;
@@ -359,7 +357,7 @@ int OPLio::OPLinit(uint32_t numchips, bool stereo, bool initopl3)
 		chips[i] = chip;
 	}
 	NumChips = i;
-	OPLchannels = i * (/*IsOPL3 ?*/ OPL3CHANNELS /*: OPL2CHANNELS*/);
+	OPLchannels = i * OPL3CHANNELS;
 	OPLwriteInitState(initopl3);
 	return i;
 }
@@ -368,8 +366,8 @@ void OPLio::OPLwriteInitState(bool initopl3)
 {
 	for (uint32_t i = 0; i < NumChips; ++i)
 	{
-		int chip = i << 1;//(int)IsOPL3;
-		if (/*IsOPL3 &&*/ initopl3)
+		int chip = i << 1;
+		if (initopl3)
 		{
 			OPLwriteReg(chip, 0x105, 0x01);	// enable YMF262/OPL3 mode
 			OPLwriteReg(chip, 0x104, 0x00);	// disable 4-operator mode
@@ -400,23 +398,13 @@ void OPLio::OPLdeinit(void)
 #define MOD_MIN		40		/* vibrato threshold */
 #define HIGHEST_NOTE 127
 
-void OPLmusicFile::writeFrequency(uint32_t slot, uint32_t note, int pitch, uint32_t keyOn)
-{
-	io->OPLwriteFreq (slot, note, pitch, keyOn);
-}
-
 int OPLmusicFile::releaseChannel(uint32_t slot, uint32_t killed)
 {
 	struct channelEntry *ch = &channels[slot];
-	writeFrequency(slot, ch->realnote, ch->pitch, 0);
-	ch->channel |= CH_FREE;
 	ch->time = MLtime;
-	ch->flags = CH_FREE;
-	if (killed)
-	{
-		io->OPLwriteChannel(0x80, slot, 0x0F, 0x0F);  // release rate - fastest
-		io->OPLwriteChannel(0x40, slot, 0x3F, 0x3F);  // no volume
-	}
+	io->OPLwriteFreq(slot, ch->realnote, ch->pitch, 0);
+	io->OPLwriteChannel(0x80, slot, 0x0F, 0x0F);  // release rate - fastest
+	io->OPLwriteChannel(0x40, slot, 0x3F, 0x3F);  // no volume
 	return slot;
 }
 
@@ -445,8 +433,7 @@ void OPLmusicFile::OPLstopMusic()
 {
 	uint32_t i;
 	for(i = 0; i < io->OPLchannels; i++)
-		if (!(channels[i].flags & CH_FREE))
-			releaseChannel(i, 1);
+		releaseChannel(i, 1);
 }
 
 int OPLmusicFile::OPLloadBank (MemChunk &data)
@@ -704,7 +691,7 @@ void OPLmusicFile::Restart ()
 bool OPLmusicFile::ServiceStream (void *buff, int numbytes)
 {
 	float *samples1 = (float *)buff;
-	int stereoshift = 1;//(int)(FullPan | /*io->IsOPL3*/1);
+	int stereoshift = 1;
 	int numsamples = numbytes / (sizeof(float) << stereoshift);
 	bool prevEnded = false;
 	bool res = true;

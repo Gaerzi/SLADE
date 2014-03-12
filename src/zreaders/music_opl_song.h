@@ -158,7 +158,6 @@ Voice-mail (Czech language only, not recommended; weekends only):
 /* Global Definitions */
 
 #define CHANNELS	16		// total channels 0..CHANNELS-1
-#define PERCUSSION	15		// percussion channel
 
 /* OP2 instrument file entry */
 struct OP2instrEntry {
@@ -167,11 +166,6 @@ struct OP2instrEntry {
 /*03*/	int8_t	note;				// note # for fixed instruments
 /*04*/	struct genmidi_inst_t instr[2];	// instruments
 };
-
-#define FL_FIXED_PITCH	0x0001		// note has fixed pitch (see below)
-#define FL_UNKNOWN		0x0002		// ??? (used in instrument #65 only)
-#define FL_DOUBLE_VOICE	0x0004		// use two voices instead of one
-
 
 #define OP2INSTRSIZE	sizeof(struct OP2instrEntry) // instrument size (36 int8_ts)
 #define OP2INSTRCOUNT	(128 + 81-35+1)	// instrument count
@@ -182,21 +176,11 @@ struct OP2instrEntry {
 #define MAXOPL2CHIPS	8
 #define MAXCHANNELS		(OPL2CHANNELS * MAXOPL2CHIPS)
 
-
-/* Channel Flags: */
-#define CH_SECONDARY	0x01
-#define CH_SUSTAIN		0x02
-#define CH_VIBRATO		0x04		/* set if modulation >= MOD_MIN */
-#define CH_FREE			0x80
-
 struct OPLdata {
-	int32_t	 channelInstr[CHANNELS];			// instrument #
 	uint8_t	 channelVolume[CHANNELS];		// volume
 	uint8_t	 channelLastVolume[CHANNELS];	// last volume
-	int8_t	 channelPan[CHANNELS];			// pan, 0=normal
 	int8_t	 channelPitch[CHANNELS];			// pitch wheel, 64=normal
 	uint8_t	 channelSustain[CHANNELS];		// sustain pedal value
-	uint8_t	 channelModulation[CHANNELS];	// modulation pot value
 	uint16_t channelPitchSens[CHANNELS];		// pitch sensitivity, 2=default
 	uint16_t channelRPN[CHANNELS];			// RPN number for data entry
 	uint8_t	 channelExpression[CHANNELS];	// expression
@@ -226,7 +210,6 @@ struct OPLio {
 	class OPLEmul *chips[MAXOPL2CHIPS];
 	uint32_t OPLchannels;
 	uint32_t NumChips;
-	//bool IsOPL3;
 };
 
 //#endif // __MUSLIB_H_
@@ -298,7 +281,6 @@ protected:
 		uint32_t time;			/* note start time */
 	} channels[MAXCHANNELS];
 
-	void writeFrequency(uint32_t slot, uint32_t note, int pitch, uint32_t keyOn);
 	int releaseChannel(uint32_t slot, uint32_t killed);
 
 	OPLmusicFile() {}
