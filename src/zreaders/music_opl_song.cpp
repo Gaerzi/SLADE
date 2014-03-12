@@ -234,27 +234,6 @@ inline uint32_t OPLio::OPLconvertVolume(uint32_t data, uint32_t volume)
 
 }
 
-uint32_t OPLio::OPLpanVolume(uint32_t volume, int pan)
-{
-	if (pan >= 0)
-		return volume;
-	else
-		return (volume * (pan + 64)) / 64;
-}
-
-/*
-* Write volume data to a channel
-*/
-void OPLio::OPLwriteVolume(uint32_t channel, genmidi_inst_t *instr, uint32_t volume)
-{
-	if (instr != 0)
-	{
-		OPLwriteChannel(0x40, channel, ((instr->nConn & 1) ?
-			OPLconvertVolume(instr->mOutput, volume) : instr->mOutput) | instr->mScale,
-			OPLconvertVolume(instr->cOutput, volume) | instr->cScale);
-	}
-}
-
 /*
 * Write pan (balance) data to a channel
 */
@@ -415,44 +394,6 @@ void OPLmusicFile::OPLstopMusic()
 		releaseChannel(i, 1);
 }
 
-int OPLmusicFile::OPLloadBank (MemChunk &data)
-{
-	static const uint8_t masterhdr[8] = { '#','O','P','L','_','I','I','#' };
-	struct OP2instrEntry *instruments;
-
-	uint8_t filehdr[8];
-
-	data.read (filehdr, 8);
-	if (memcmp(filehdr, masterhdr, 8))
-		return -2;			/* bad instrument file */
-	if ( (instruments = (struct OP2instrEntry *)calloc(OP2INSTRCOUNT, OP2INSTRSIZE)) == NULL)
-		return -3;			/* not enough memory */
-	data.read (instruments, OP2INSTRSIZE * OP2INSTRCOUNT);
-	if (OPLinstruments != NULL)
-	{
-		free(OPLinstruments);
-	}
-	OPLinstruments = instruments;
-#if 0
-	for (int i = 0; i < 175; ++i)
-	{
-		wxLogMessage ("%3d.%-33s%3d %3d %3d %d\n", i,
-			(uint8_t *)data+6308+i*32,
-			OPLinstruments[i].instr[0].basenote,
-			OPLinstruments[i].instr[1].basenote,
-			OPLinstruments[i].note,
-			OPLinstruments[i].flags);
-	}
-#endif
-	return 0;
-}
-
-void OPLmusicFile::ResetChips ()
-{
-	io->OPLdeinit ();
-	NumChips = io->OPLinit(MIN(*opl_numchips, 2), FullPan);
-}
-
 OPLmusicFile::OPLmusicFile (FILE *file, const uint8_t *musiccache, size_t len)
 {
 	memset (this, 0, sizeof(*this));
@@ -460,7 +401,6 @@ OPLmusicFile::OPLmusicFile (FILE *file, const uint8_t *musiccache, size_t len)
 	NextTickIn = 0;
 	LastOffset = 0;
 	NumChips = MIN(*opl_numchips, 2);
-	Looping = false;
 	FullPan = false;
 	io = NULL;
 	io = new OPLio;
@@ -595,7 +535,6 @@ fail:		delete[] scoredata;
 
 OPLmusicFile::~OPLmusicFile ()
 {
-	if (OPLinstruments != NULL) free(OPLinstruments);
 	if (scoredata != NULL)
 	{
 		io->OPLdeinit ();
@@ -603,16 +542,6 @@ OPLmusicFile::~OPLmusicFile ()
 		delete[] scoredata;
 		scoredata = NULL;
 	}
-}
-
-bool OPLmusicFile::IsValid () const
-{
-	return scoredata != NULL;
-}
-
-void OPLmusicFile::SetLooping (bool loop)
-{
-	Looping = loop;
 }
 
 void OPLmusicFile::Restart ()
@@ -624,7 +553,6 @@ void OPLmusicFile::Restart ()
 	}
 	OPLstopMusic ();
 	MLtime = 0;
-	playingcount = 0;
 	LastOffset = 0;
 	WhichChip = 0;
 	switch (RawPlayer)
@@ -703,25 +631,16 @@ bool OPLmusicFile::ServiceStream (void *buff, int numbytes)
 			assert(next >= 0);
 			if (next == 0)
 			{ // end of song
-				if (!Looping || prevEnded)
+				if (numsamples > 0)
 				{
-					if (numsamples > 0)
+					for (i = 0; i < io->NumChips; ++i)
 					{
-						for (i = 0; i < io->NumChips; ++i)
-						{
-							io->chips[i]->Update(samples1, numsamples);
-						}
-						OffsetSamples(samples1, numsamples << stereoshift);
+						io->chips[i]->Update(samples1, numsamples);
 					}
-					res = false;
-					break;
+					OffsetSamples(samples1, numsamples << stereoshift);
 				}
-				else
-				{
-					// Avoid infinite loops from songs that do nothing but end
-					prevEnded = true;
-					Restart ();
-				}
+				res = false;
+				break;
 			}
 			else
 			{

@@ -157,17 +157,6 @@ Voice-mail (Czech language only, not recommended; weekends only):
 
 /* Global Definitions */
 
-/* OP2 instrument file entry */
-struct OP2instrEntry {
-/*00*/	int16_t	flags;				// see FL_xxx below
-/*02*/	int8_t	finetune;			// finetune value for 2-voice sounds
-/*03*/	int8_t	note;				// note # for fixed instruments
-/*04*/	struct genmidi_inst_t instr[2];	// instruments
-};
-
-#define OP2INSTRSIZE	sizeof(struct OP2instrEntry) // instrument size (36 int8_ts)
-#define OP2INSTRCOUNT	(128 + 81-35+1)	// instrument count
-
 /* From MLOPL_IO.CPP */
 #define OPL2CHANNELS	9
 #define OPL3CHANNELS	18
@@ -181,8 +170,6 @@ struct OPLio {
 	void	OPLwriteValue(uint32_t regbase, uint32_t channel, uint8_t value);
 	void	OPLwriteFreq(uint32_t channel, uint32_t freq, uint32_t octave, uint32_t keyon);
 	uint32_t OPLconvertVolume(uint32_t data, uint32_t volume);
-	uint32_t OPLpanVolume(uint32_t volume, int pan);
-	void	OPLwriteVolume(uint32_t channel, struct genmidi_inst_t *instr, uint32_t volume);
 	void	OPLwritePan(uint32_t channel, struct genmidi_inst_t *instr, int pan);
 	void	OPLwriteInstrument(uint32_t channel, struct genmidi_inst_t *instr);
 	void	OPLwriteInstrument(uint32_t channel, struct audiot_inst_t *instr);
@@ -215,23 +202,14 @@ public:
 
 	uint8_t *score;
 	uint8_t *scoredata;
-	int playingcount;
 	OPLio *io;
-
-	struct OP2instrEntry *OPLinstruments;
 
 	uint32_t MLtime;
 
 	void OPLstopMusic();
 
-	int OPLloadBank (MemChunk &data);
-
-
 	bool ServiceStream(void *buff, int numbytes);
-	void ResetChips();
 
-	bool IsValid() const;
-	void SetLooping(bool loop);
 	void Restart();
 
 	int  GetLength() { return ScoreLen; }
@@ -247,7 +225,6 @@ protected:
 	double SamplesPerTick;
 	int ImfRate;
 	int NumChips;
-	bool Looping;
 	double LastOffset;
 	bool FullPan;
 	uint8_t Octave;	// Octave, used by AudioT format;
