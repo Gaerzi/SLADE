@@ -137,7 +137,6 @@ public:
 	void update_FNUML8(class OPL3 *OPL3);
 	void update_CHD1_CHC1_CHB1_CHA1_FB3_CNT1(class OPL3 *OPL3);
 	void updateChannel(class OPL3 *OPL3);
-	void updatePan(class OPL3 *OPL3);
 	virtual double getChannelOutput(class OPL3 *OPL3) = 0;
 
 	virtual void keyOn() = 0;
@@ -595,8 +594,6 @@ public:
 			
 	int nts, dam, dvb, ryt, bd, sd, tom, tc, hh, _new, connectionsel;
 	int vibratoIndex, tremoloIndex;
-
-	bool FullPan;
 	
 	static OperatorDataStruct *OperatorData;
 	static OPL3DataStruct *OPL3Data;
@@ -610,7 +607,7 @@ public:
 	//void read(float output[2]);
 	void write(int array, int address, int data);
 
-	OPL3(bool fullpan);
+	OPL3();
 	~OPL3();
 	
 private:
@@ -753,12 +750,11 @@ void OPL3::write(int array, int address, int data) {
     }
 }
 
-OPL3::OPL3(bool fullpan)
-: tomTomTopCymbalChannel(fullpan ? CENTER_PANNING_POWER : 1, &tomTomOperator, &topCymbalOperator),
-  bassDrumChannel(fullpan ? CENTER_PANNING_POWER : 1),
-  highHatSnareDrumChannel(fullpan ? CENTER_PANNING_POWER : 1, &highHatOperator, &snareDrumOperator)
+OPL3::OPL3()
+: tomTomTopCymbalChannel(CENTER_PANNING_POWER, &tomTomOperator, &topCymbalOperator),
+  bassDrumChannel(CENTER_PANNING_POWER),
+  highHatSnareDrumChannel(CENTER_PANNING_POWER, &highHatOperator, &snareDrumOperator)
 {
-	FullPan = fullpan;
     nts = dam = dvb = ryt = bd = sd = tom = tc = hh = _new = connectionsel = 0;
     vibratoIndex = tremoloIndex = 0; 
 
@@ -832,7 +828,7 @@ void OPL3::initChannels2op() {
     // The YMF262 has 18 2-op channels.
     // Each 2-op channel can be at a serial or parallel operator configuration:
     memset(channels2op, 0, sizeof(channels2op));
-	double startvol = FullPan ? CENTER_PANNING_POWER : 1;
+	double startvol = CENTER_PANNING_POWER;
     for(int array=0; array<2; array++)
         for(int channelNumber=0; channelNumber<3; channelNumber++) {
             int baseAddress = (array<<8) | channelNumber;
@@ -848,7 +844,7 @@ void OPL3::initChannels2op() {
 void OPL3::initChannels4op() {
     // The YMF262 has 3 4-op channels in each array:
 	memset(channels4op, 0, sizeof(channels4op));
-	double startvol = FullPan ? CENTER_PANNING_POWER : 1;
+	double startvol = CENTER_PANNING_POWER;
     for(int array=0; array<2; array++)
         for(int channelNumber=0; channelNumber<3; channelNumber++) {
             int baseAddress = (array<<8) | channelNumber;
@@ -950,7 +946,6 @@ void OPL3::updateChannelPans() {
         for(int i=0; i<9; i++) {
             int baseAddress = channels[array][i]->channelBaseAddress;
 			registers[baseAddress+ChannelData::CHD1_CHC1_CHB1_CHA1_FB3_CNT1_Offset] |= 0xF0;
-            channels[array][i]->updatePan(this);
         }
 
 }
@@ -1057,24 +1052,7 @@ void Channel::update_CHD1_CHC1_CHB1_CHA1_FB3_CNT1(OPL3 *OPL3) {
 	cha   = (chd1_chc1_chb1_cha1_fb3_cnt1 & 0x10) >> 4;
 	fb    = (chd1_chc1_chb1_cha1_fb3_cnt1 & 0x0E) >> 1;
 	cnt   = chd1_chc1_chb1_cha1_fb3_cnt1 & 0x01;
-	updatePan(OPL3);
 	updateOperators(OPL3);
-}
-
-void Channel::updatePan(OPL3 *OPL3) {
-	if (!OPL3->FullPan)
-	{
-		if (OPL3->_new == 0)
-		{
-			leftPan = VOLUME_MUL;
-			rightPan = VOLUME_MUL;
-		}
-		else
-		{
-			leftPan = cha * VOLUME_MUL;
-			rightPan = chb * VOLUME_MUL;
-		}
-	}
 }
 
 void Channel::updateChannel(OPL3 *OPL3) {
@@ -1888,26 +1866,23 @@ void OPL3::WriteReg(int reg, int v)
 
 void OPL3::SetPanning(int c, float left, float right)
 {
-	if (FullPan)
-	{
-		Channel *channel;
+	Channel *channel;
 
-		if (c < 9)
-		{
-			channel = channels[0][c];
-		}
-		else
-		{
-			channel = channels[1][c - 9];
-		}
-		channel->leftPan = left;
-		channel->rightPan = right;
+	if (c < 9)
+	{
+		channel = channels[0][c];
 	}
+	else
+	{
+		channel = channels[1][c - 9];
+	}
+	channel->leftPan = left;
+	channel->rightPan = right;
 }
 
-OPLEmul *JavaOPLCreate(bool stereo)
+OPLEmul *JavaOPLCreate()
 {
-	return new OPL3(stereo);
+	return new OPL3();
 }
 
 

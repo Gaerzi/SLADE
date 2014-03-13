@@ -173,15 +173,14 @@ struct OPLio {
 	void	OPLwriteInstrument(uint32_t channel, struct genmidi_inst_t *instr);
 	void	OPLwriteInstrument(uint32_t channel, struct audiot_inst_t *instr);
 	void	OPLshutup(void);
-	void	OPLwriteInitState(bool initopl3);
+	void	OPLwriteInitState();
 
-	virtual int		OPLinit(uint32_t numchips, bool stereo=false, bool initopl3=false);
-	virtual void	OPLdeinit(void);
+	virtual int		OPLinit();
+	virtual void	OPLdeinit();
 	virtual void	OPLwriteReg(int which, uint32_t reg, uint8_t data);
 
 	class OPLEmul *chips[MAXOPL2CHIPS];
 	uint32_t OPLchannels;
-	uint32_t NumChips;
 };
 
 //#endif // __MUSLIB_H_
@@ -223,7 +222,6 @@ protected:
 	int ImfRate;
 	int NumChips;
 	double LastOffset;
-	bool FullPan;
 	uint8_t Octave;	// Octave, used by AudioT format;
 
 	int releaseChannel(uint32_t slot, uint32_t killed);

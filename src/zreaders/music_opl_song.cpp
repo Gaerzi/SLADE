@@ -311,38 +311,32 @@ void OPLio::OPLshutup(void)
 /*
 * Initialize hardware upon startup
 */
-int OPLio::OPLinit(uint32_t numchips, bool stereo, bool initopl3)
+int OPLio::OPLinit()
 {
-	assert(numchips >= 1 && numchips <= countof(chips));
 	uint32_t i;
 
 	memset(chips, 0, sizeof(chips));
-	numchips = (numchips + 1) >> 1;
-	for (i = 0; i < numchips; ++i)
+	for (i = 0; i < MAXOPL2CHIPS; ++i)
 	{
-		OPLEmul *chip = JavaOPLCreate(stereo);
+		OPLEmul *chip = JavaOPLCreate();
 		if (chip == NULL)
 		{
 			break;
 		}
 		chips[i] = chip;
 	}
-	NumChips = i;
 	OPLchannels = i * OPL3CHANNELS;
-	OPLwriteInitState(initopl3);
+	OPLwriteInitState();
 	return i;
 }
 
-void OPLio::OPLwriteInitState(bool initopl3)
+void OPLio::OPLwriteInitState()
 {
-	for (uint32_t i = 0; i < NumChips; ++i)
+	for (uint32_t i = 0; i < MAXOPL2CHIPS; ++i)
 	{
 		int chip = i << 1;
-		if (initopl3)
-		{
-			OPLwriteReg(chip, 0x105, 0x01);	// enable YMF262/OPL3 mode
-			OPLwriteReg(chip, 0x104, 0x00);	// disable 4-operator mode
-		}
+		OPLwriteReg(chip, 0x105, 0x01);	// enable YMF262/OPL3 mode
+		OPLwriteReg(chip, 0x104, 0x00);	// disable 4-operator mode
 		OPLwriteReg(chip, 0x01, 0x20);	// enable Waveform Select
 		OPLwriteReg(chip, 0x0B, 0x40);	// turn off CSW mode
 		OPLwriteReg(chip, 0xBD, 0x00);	// set vibrato/tremolo depth to low, set melodic mode
@@ -386,7 +380,6 @@ OPLmusicFile::OPLmusicFile (FILE *file, const uint8_t *musiccache, size_t len)
 	NextTickIn = 0;
 	LastOffset = 0;
 	NumChips = MIN(*opl_numchips, 2);
-	FullPan = false;
 	io = NULL;
 	io = new OPLio;
 	ScoreLen = len;
@@ -413,7 +406,7 @@ fail:		delete[] scoredata;
 		memcpy(scoredata, &musiccache[0], len);
 	}
 
-	if (0 == (NumChips = io->OPLinit(NumChips)))
+	if (0 == (NumChips = io->OPLinit()))
 	{
 		goto fail;
 	}
@@ -597,7 +590,7 @@ bool OPLmusicFile::ServiceStream (void *buff, int numbytes)
 
 		if (samplesleft > 0)
 		{
-			for (i = 0; i < io->NumChips; ++i)
+			for (i = 0; i < MAXOPL2CHIPS; ++i)
 			{
 				io->chips[i]->Update(samples1, samplesleft);
 			}
@@ -617,7 +610,7 @@ bool OPLmusicFile::ServiceStream (void *buff, int numbytes)
 			{ // end of song
 				if (numsamples > 0)
 				{
-					for (i = 0; i < io->NumChips; ++i)
+					for (i = 0; i < MAXOPL2CHIPS; ++i)
 					{
 						io->chips[i]->Update(samples1, numsamples);
 					}
