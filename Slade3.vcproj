@@ -1291,6 +1291,14 @@
 					Name="MapObjectPropsPanel"
 					>
 					<File
+						RelativePath=".\src\LinePropsPanel.cpp"
+						>
+					</File>
+					<File
+						RelativePath=".\src\LinePropsPanel.h"
+						>
+					</File>
+					<File
 						RelativePath=".\src\MapObjectPropsPanel.cpp"
 						>
 					</File>
@@ -1304,6 +1312,14 @@
 					</File>
 					<File
 						RelativePath=".\src\MOPGProperty.h"
+						>
+					</File>
+					<File
+						RelativePath=".\src\SidePropsPanel.cpp"
+						>
+					</File>
+					<File
+						RelativePath=".\src\SidePropsPanel.h"
 						>
 					</File>
 				</Filter>
