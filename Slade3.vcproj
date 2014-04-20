@@ -1288,7 +1288,7 @@
 					</File>
 				</Filter>
 				<Filter
-					Name="MapObjectPropsPanel"
+					Name="Props Panels"
 					>
 					<File
 						RelativePath=".\src\LinePropsPanel.cpp"
@@ -1312,6 +1312,18 @@
 					</File>
 					<File
 						RelativePath=".\src\MOPGProperty.h"
+						>
+					</File>
+					<File
+						RelativePath=".\src\PropsPanelBase.h"
+						>
+					</File>
+					<File
+						RelativePath=".\src\SectorPropsPanel.cpp"
+						>
+					</File>
+					<File
+						RelativePath=".\src\SectorPropsPanel.h"
 						>
 					</File>
 					<File
@@ -2262,6 +2274,14 @@
 			</File>
 			<File
 				RelativePath=".\src\MapPreviewCanvas.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\NumberTextCtrl.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\NumberTextCtrl.h"
 				>
 			</File>
 			<File
