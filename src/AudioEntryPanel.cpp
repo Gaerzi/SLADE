@@ -714,6 +714,7 @@ void AudioEntryPanel::onBtnPrev(wxCommandEvent& e)
 {
 	if (subsong > 0)
 		subsong--;
+	else subsong = num_tracks - 1;
 
 	if (entry->getType()->getFormat() == "xmi")
 	{
@@ -733,23 +734,21 @@ void AudioEntryPanel::onBtnPrev(wxCommandEvent& e)
  *******************************************************************/
 void AudioEntryPanel::onBtnNext(wxCommandEvent& e)
 {
-	if (subsong + 1 < num_tracks)
+	int newsong = (subsong + 1) % num_tracks;
+	if (entry->getType()->getFormat() == "xmi")
 	{
-		if (entry->getType()->getFormat() == "xmi")
-		{
-			MemChunk& mcdata = entry->getMCData();
-			MemChunk convdata;
-			if (Conversions::zmusToMidi(mcdata, convdata, subsong + 1) && openMidi(convdata, prevfile))
-				++subsong;
-		}
-		else if (entry->getType()->getFormat().StartsWith("gme"))
-		{
-			if (theGMEPlayer->play(subsong + 1))
-				++subsong;
-		}
-		txt_track->SetLabel(S_FMT("%d/%d", subsong+1, num_tracks));
-		updateInfo();
+		MemChunk& mcdata = entry->getMCData();
+		MemChunk convdata;
+		if (Conversions::zmusToMidi(mcdata, convdata, newsong) && openMidi(convdata, prevfile))
+			subsong = newsong;
 	}
+	else if (entry->getType()->getFormat().StartsWith("gme"))
+	{
+		if (theGMEPlayer->play(newsong))
+			subsong = newsong;
+	}
+	txt_track->SetLabel(S_FMT("%d/%d", subsong+1, num_tracks));
+	updateInfo();
 }
 
 /* AudioEntryPanel::onTimer
