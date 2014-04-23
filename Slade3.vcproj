@@ -1334,6 +1334,14 @@
 						RelativePath=".\src\SidePropsPanel.h"
 						>
 					</File>
+					<File
+						RelativePath=".\src\ThingPropsPanel.cpp"
+						>
+					</File>
+					<File
+						RelativePath=".\src\ThingPropsPanel.h"
+						>
+					</File>
 				</Filter>
 				<Filter
 					Name="Dialogs"
