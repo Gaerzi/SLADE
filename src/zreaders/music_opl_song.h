@@ -167,9 +167,6 @@ struct OPLio {
 
 	void	OPLwriteChannel(uint32_t regbase, uint32_t channel, uint8_t data1, uint8_t data2);
 	void	OPLwriteValue(uint32_t regbase, uint32_t channel, uint8_t value);
-	void	OPLwriteFreq(uint32_t channel, uint32_t freq, uint32_t octave, uint32_t keyon);
-	uint32_t OPLconvertVolume(uint32_t data, uint32_t volume);
-	void	OPLwritePan(uint32_t channel, struct genmidi_inst_t *instr, int pan);
 	void	OPLwriteInstrument(uint32_t channel, struct genmidi_inst_t *instr);
 	void	OPLwriteInstrument(uint32_t channel, struct audiot_inst_t *instr);
 	void	OPLshutup(void);
