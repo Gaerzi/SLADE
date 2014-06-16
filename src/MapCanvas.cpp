@@ -667,6 +667,10 @@ void MapCanvas::drawEditorMessages()
 	if (map_showfps) yoff = 16;
 	Drawing::setTextState(true);
 	Drawing::enableTextStateReset(false);
+
+	rgba_t col_fg = ColourConfiguration::getColour("map_editor_message");
+	rgba_t col_bg = ColourConfiguration::getColour("map_editor_message_outline");
+
 	for (unsigned a = 0; a < editor->numEditorMessages(); a++)
 	{
 		// Check message time
@@ -675,7 +679,7 @@ void MapCanvas::drawEditorMessages()
 			continue;
 
 		// Setup message colour
-		rgba_t col = ColourConfiguration::getColour("map_editor_message");
+		rgba_t col = col_fg;
 		if (time < 200)
 		{
 			float flash = 1.0f - (time / 200.0f);
@@ -689,10 +693,10 @@ void MapCanvas::drawEditorMessages()
 			col.a = 255 - (double((time - 1500) / 500.0) * 255);
 
 		// Draw message outline
-		Drawing::drawText(editor->getEditorMessage(a), 2, yoff+1, rgba_t(0, 0, 0, col.a), Drawing::FONT_BOLD);
-		Drawing::drawText(editor->getEditorMessage(a), 2, yoff-1, rgba_t(0, 0, 0, col.a), Drawing::FONT_BOLD);
-		Drawing::drawText(editor->getEditorMessage(a), -2, yoff-1, rgba_t(0, 0, 0, col.a), Drawing::FONT_BOLD);
-		Drawing::drawText(editor->getEditorMessage(a), -2, yoff+1, rgba_t(0, 0, 0, col.a), Drawing::FONT_BOLD);
+		Drawing::drawText(editor->getEditorMessage(a), 2, yoff+1, rgba_t(col_bg.r, col_bg.g, col_bg.b, col.a), Drawing::FONT_BOLD);
+		Drawing::drawText(editor->getEditorMessage(a), 2, yoff-1, rgba_t(col_bg.r, col_bg.g, col_bg.b, col.a), Drawing::FONT_BOLD);
+		Drawing::drawText(editor->getEditorMessage(a), -2, yoff-1, rgba_t(col_bg.r, col_bg.g, col_bg.b, col.a), Drawing::FONT_BOLD);
+		Drawing::drawText(editor->getEditorMessage(a), -2, yoff+1, rgba_t(col_bg.r, col_bg.g, col_bg.b, col.a), Drawing::FONT_BOLD);
 
 		// Draw message
 		Drawing::drawText(editor->getEditorMessage(a), 0, yoff, col, Drawing::FONT_BOLD);
@@ -714,11 +718,13 @@ void MapCanvas::drawFeatureHelpText()
 	// Draw title
 	frect_t bounds;
 	rgba_t col = ColourConfiguration::getColour("map_editor_message");
+	rgba_t col_bg = ColourConfiguration::getColour("map_editor_message_outline");
 	col.a = col.a * anim_help_fade;
-	Drawing::drawText(feature_help_lines[0], GetSize().x - 2, 3, rgba_t(0, 0, 0, 255 * anim_help_fade), Drawing::FONT_BOLD, Drawing::ALIGN_RIGHT);
-	Drawing::drawText(feature_help_lines[0], GetSize().x - 2, 1, rgba_t(0, 0, 0, 255 * anim_help_fade), Drawing::FONT_BOLD, Drawing::ALIGN_RIGHT);
-	Drawing::drawText(feature_help_lines[0], GetSize().x, 1, rgba_t(0, 0, 0, 255 * anim_help_fade), Drawing::FONT_BOLD, Drawing::ALIGN_RIGHT);
-	Drawing::drawText(feature_help_lines[0], GetSize().x, 3, rgba_t(0, 0, 0, 255 * anim_help_fade), Drawing::FONT_BOLD, Drawing::ALIGN_RIGHT);
+	col_bg.a = col_bg.a * anim_help_fade;
+	Drawing::drawText(feature_help_lines[0], GetSize().x - 3, 3, col_bg, Drawing::FONT_BOLD, Drawing::ALIGN_RIGHT);
+	Drawing::drawText(feature_help_lines[0], GetSize().x - 3, 1, col_bg, Drawing::FONT_BOLD, Drawing::ALIGN_RIGHT);
+	Drawing::drawText(feature_help_lines[0], GetSize().x - 1, 1, col_bg, Drawing::FONT_BOLD, Drawing::ALIGN_RIGHT);
+	Drawing::drawText(feature_help_lines[0], GetSize().x - 1, 3, col_bg, Drawing::FONT_BOLD, Drawing::ALIGN_RIGHT);
 	Drawing::drawText(feature_help_lines[0], GetSize().x - 2, 2, col, Drawing::FONT_BOLD, Drawing::ALIGN_RIGHT, &bounds);
 
 	// Draw underline
@@ -740,10 +746,10 @@ void MapCanvas::drawFeatureHelpText()
 	for (unsigned a = 1; a < feature_help_lines.size(); a++)
 	{
 		// Draw outline
-		Drawing::drawText(feature_help_lines[a], GetSize().x - 3, yoff + 1, rgba_t(0, 0, 0, 255 * anim_help_fade), Drawing::FONT_BOLD, Drawing::ALIGN_RIGHT);
-		Drawing::drawText(feature_help_lines[a], GetSize().x - 3, yoff - 1, rgba_t(0, 0, 0, 255 * anim_help_fade), Drawing::FONT_BOLD, Drawing::ALIGN_RIGHT);
-		Drawing::drawText(feature_help_lines[a], GetSize().x - 1, yoff - 1, rgba_t(0, 0, 0, 255 * anim_help_fade), Drawing::FONT_BOLD, Drawing::ALIGN_RIGHT);
-		Drawing::drawText(feature_help_lines[a], GetSize().x - 1, yoff + 1, rgba_t(0, 0, 0, 255 * anim_help_fade), Drawing::FONT_BOLD, Drawing::ALIGN_RIGHT);
+		Drawing::drawText(feature_help_lines[a], GetSize().x - 3, yoff + 1, col_bg, Drawing::FONT_BOLD, Drawing::ALIGN_RIGHT);
+		Drawing::drawText(feature_help_lines[a], GetSize().x - 3, yoff - 1, col_bg, Drawing::FONT_BOLD, Drawing::ALIGN_RIGHT);
+		Drawing::drawText(feature_help_lines[a], GetSize().x - 1, yoff - 1, col_bg, Drawing::FONT_BOLD, Drawing::ALIGN_RIGHT);
+		Drawing::drawText(feature_help_lines[a], GetSize().x - 1, yoff + 1, col_bg, Drawing::FONT_BOLD, Drawing::ALIGN_RIGHT);
 
 		// Draw text
 		Drawing::drawText(feature_help_lines[a], GetSize().x - 2, yoff, col, Drawing::FONT_BOLD, Drawing::ALIGN_RIGHT);
@@ -3311,7 +3317,7 @@ void MapCanvas::onKeyBindRelease(string name)
 	if (name == "me2d_pan_view" && panning)
 	{
 		panning = false;
-		editor->updateHilight(mouse_pos_m);
+		editor->updateHilight(mouse_pos_m, view_scale);
 		SetCursor(wxNullCursor);
 	}
 
@@ -3319,7 +3325,7 @@ void MapCanvas::onKeyBindRelease(string name)
 	{
 		mouse_state = MSTATE_NORMAL;
 		editor->endUndoRecord(true);
-		editor->updateHilight(mouse_pos_m);
+		editor->updateHilight(mouse_pos_m, view_scale);
 	}
 }
 
@@ -3766,58 +3772,60 @@ void MapCanvas::onKeyDown(wxKeyEvent& e)
 	KeyBind::keyPressed(KeyBind::asKeyPress(e.GetKeyCode(), e.GetModifiers()));
 
 	// Testing
-	if (e.GetKeyCode() == WXK_F6)
+	if (Global::debug)
 	{
-		Polygon2D poly;
-		sf::Clock clock;
-		wxLogMessage("Generating polygons...");
-		for (unsigned a = 0; a < editor->getMap().nSectors(); a++)
+		if (e.GetKeyCode() == WXK_F6)
 		{
-			if (!poly.openSector(editor->getMap().getSector(a)))
-				wxLogMessage("Splitting failed for sector %d", a);
+			Polygon2D poly;
+			sf::Clock clock;
+			wxLogMessage("Generating polygons...");
+			for (unsigned a = 0; a < editor->getMap().nSectors(); a++)
+			{
+				if (!poly.openSector(editor->getMap().getSector(a)))
+					wxLogMessage("Splitting failed for sector %d", a);
+			}
+			//int ms = clock.GetElapsedTime() * 1000;
+			//wxLogMessage("Polygon generation took %dms", ms);
 		}
-		//int ms = clock.GetElapsedTime() * 1000;
-		//wxLogMessage("Polygon generation took %dms", ms);
-	}
-	if (e.GetKeyCode() == WXK_F7)
-	{
-		// Get nearest line
-		int nearest = editor->getMap().nearestLine(mouse_pos_m.x, mouse_pos_m.y, 999999);
-		MapLine* line = editor->getMap().getLine(nearest);
-		if (line)
+		if (e.GetKeyCode() == WXK_F7)
 		{
-			// Determine line side
-			double side = MathStuff::lineSide(mouse_pos_m.x, mouse_pos_m.y, line->x1(), line->y1(), line->x2(), line->y2());
-			if (side >= 0)
-				sbuilder.traceSector(&(editor->getMap()), line, true);
-			else
-				sbuilder.traceSector(&(editor->getMap()), line, false);
+			// Get nearest line
+			int nearest = editor->getMap().nearestLine(mouse_pos_m.x, mouse_pos_m.y, 999999);
+			MapLine* line = editor->getMap().getLine(nearest);
+			if (line)
+			{
+				// Determine line side
+				double side = MathStuff::lineSide(mouse_pos_m.x, mouse_pos_m.y, line->x1(), line->y1(), line->x2(), line->y2());
+				if (side >= 0)
+					sbuilder.traceSector(&(editor->getMap()), line, true);
+				else
+					sbuilder.traceSector(&(editor->getMap()), line, false);
+			}
 		}
-	}
-	if (e.GetKeyCode() == WXK_F5)
-	{
-		// Get nearest line
-		int nearest = editor->getMap().nearestLine(mouse_pos_m.x, mouse_pos_m.y, 999999);
-		MapLine* line = editor->getMap().getLine(nearest);
+		if (e.GetKeyCode() == WXK_F5)
+		{
+			// Get nearest line
+			int nearest = editor->getMap().nearestLine(mouse_pos_m.x, mouse_pos_m.y, 999999);
+			MapLine* line = editor->getMap().getLine(nearest);
 
-		// Get sectors
-		MapSector* sec1 = editor->getMap().getLineSideSector(line, true);
-		MapSector* sec2 = editor->getMap().getLineSideSector(line, false);
-		int i1 = -1;
-		int i2 = -1;
-		if (sec1) i1 = sec1->getIndex();
-		if (sec2) i2 = sec2->getIndex();
+			// Get sectors
+			MapSector* sec1 = editor->getMap().getLineSideSector(line, true);
+			MapSector* sec2 = editor->getMap().getLineSideSector(line, false);
+			int i1 = -1;
+			int i2 = -1;
+			if (sec1) i1 = sec1->getIndex();
+			if (sec2) i2 = sec2->getIndex();
 
-		editor->addEditorMessage(S_FMT("Front %d Back %d", i1, i2));
-	}
-
-	if (e.GetKeyCode() == WXK_F5 && editor->editMode() == MapEditor::MODE_SECTORS)
-	{
-		splitter.setVerbose(true);
-		splitter.clear();
-		splitter.openSector(editor->getHilightedSector());
-		Polygon2D temp;
-		splitter.doSplitting(&temp);
+			editor->addEditorMessage(S_FMT("Front %d Back %d", i1, i2));
+		}
+		if (e.GetKeyCode() == WXK_F5 && editor->editMode() == MapEditor::MODE_SECTORS)
+		{
+			splitter.setVerbose(true);
+			splitter.clear();
+			splitter.openSector(editor->getHilightedSector());
+			Polygon2D temp;
+			splitter.doSplitting(&temp);
+		}
 	}
 
 	// Update cursor in object edit mode
@@ -3853,7 +3861,7 @@ void MapCanvas::onMouseDown(wxMouseEvent& e)
 {
 	// Update hilight
 	if (mouse_state == MSTATE_NORMAL)
-		editor->updateHilight(mouse_pos_m);
+		editor->updateHilight(mouse_pos_m, view_scale);
 
 	// Update mouse variables
 	mouse_downpos.set(e.GetX(), e.GetY());
@@ -4289,7 +4297,7 @@ void MapCanvas::onMouseWheel(wxMouseEvent& e)
 {
 	if (e.GetWheelRotation() > 0)
 	{
-		KeyBind::keyPressed(keypress_t("mwheelup", e.AltDown(), e.CmdDown(), e.ShiftDown()));
+		KeyBind::keyPressed(keypress_t("mwheelup", e.AltDown(), e.ControlDown(), e.ShiftDown()));
 
 		// Send to overlay if active
 		if (overlayActive())
@@ -4299,7 +4307,7 @@ void MapCanvas::onMouseWheel(wxMouseEvent& e)
 	}
 	else if (e.GetWheelRotation() < 0)
 	{
-		KeyBind::keyPressed(keypress_t("mwheeldown", e.AltDown(), e.CmdDown(), e.ShiftDown()));
+		KeyBind::keyPressed(keypress_t("mwheeldown", e.AltDown(), e.ControlDown(), e.ShiftDown()));
 
 		// Send to overlay if active
 		if (overlayActive())
