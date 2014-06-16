@@ -1077,6 +1077,14 @@
 			Name="Map Editor"
 			>
 			<File
+				RelativePath=".\src\MapBackupManager.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\MapBackupManager.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\MapChecks.cpp"
 				>
 			</File>
@@ -1157,6 +1165,14 @@
 				</File>
 				<File
 					RelativePath=".\src\GenLineSpecialPanel.h"
+					>
+				</File>
+				<File
+					RelativePath=".\src\MapBackupPanel.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\src\MapBackupPanel.h"
 					>
 				</File>
 				<File
