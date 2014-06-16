@@ -13,61 +13,11 @@
 #define HALF_PI (PI*0.5)
 CVAR(Bool, opl_singlevoice, 0, 0)
 CVAR(Int, opl_numchips, 2, CVAR_SAVE)
-//EXTERN_CVAR(Int, opl_core)
 
-
-/*
-*	Name:		Low-level OPL2/OPL3 I/O interface
-*	Project:	MUS File Player Library
-*	Version:	1.64
-*	Author:		Vladimir Arnost (QA-Software)
-*	Last revision:	Mar-1-1996
-*	Compiler:	Borland C++ 3.1, Watcom C/C++ 10.0
-*
-*/
-
-/*
-* Revision History:
-*
-*	Aug-8-1994	V1.00	V.Arnost
-*		Written from scratch
-*	Aug-9-1994	V1.10	V.Arnost
-*		Added stereo capabilities
-*	Aug-13-1994	V1.20	V.Arnost
-*		Stereo capabilities made functional
-*	Aug-24-1994	V1.30	V.Arnost
-*		Added Adlib and SB Pro II detection
-*	Oct-30-1994	V1.40	V.Arnost
-*		Added BLASTER variable parsing
-*	Apr-14-1995	V1.50	V.Arnost
-*              Some declarations moved from adlib.h to deftypes.h
-*	Jul-22-1995	V1.60	V.Arnost
-*		Ported to Watcom C
-*		Simplified WriteChannel() and WriteValue()
-*	Jul-24-1995	V1.61	V.Arnost
-*		DetectBlaster() moved to MLMISC.C
-*	Aug-8-1995	V1.62	V.Arnost
-*		Module renamed to MLOPL_IO.C and functions renamed to OPLxxx
-*		Mixer-related functions moved to module MLSBMIX.C
-*	Sep-8-1995	V1.63	V.Arnost
-*		OPLwriteReg() routine sped up on OPL3 cards
-*	Mar-1-1996	V1.64	V.Arnost
-*		Cleaned up the source
-*/
-
-
-
-OPLio::~OPLio()
+void OPLmusicFile::OPLwriteReg(int which, uint32_t reg, uint8_t data)
 {
-}
-
-void OPLio::OPLwriteReg(int which, uint32_t reg, uint8_t data)
-{
-	if (1)
-	{
-		reg |= (which & 1) << 8;
-		which >>= 1;
-	}
+	reg |= (which & 1) << 8;
+	which >>= 1;
 	if (chips[which] != NULL)
 	{
 		chips[which]->WriteReg(reg, data);
@@ -78,7 +28,7 @@ void OPLio::OPLwriteReg(int which, uint32_t reg, uint8_t data)
 * Write to an operator pair. To be used for register bases of 0x20, 0x40,
 * 0x60, 0x80 and 0xE0.
 */
-void OPLio::OPLwriteChannel(uint32_t regbase, uint32_t channel, uint8_t data1, uint8_t data2)
+void OPLmusicFile::OPLwriteChannel(uint32_t regbase, uint32_t channel, uint8_t data1, uint8_t data2)
 {
 	// Same as modifiers[9] array
 	static const uint32_t op_num[OPL2CHANNELS] = {
@@ -94,7 +44,7 @@ void OPLio::OPLwriteChannel(uint32_t regbase, uint32_t channel, uint8_t data1, u
 * Write to channel a single value. To be used for register bases of
 * 0xA0, 0xB0 and 0xC0.
 */
-void OPLio::OPLwriteValue(uint32_t regbase, uint32_t channel, uint8_t value)
+void OPLmusicFile::OPLwriteValue(uint32_t regbase, uint32_t channel, uint8_t value)
 {
 	uint32_t which = channel / OPL2CHANNELS;
 	uint32_t reg = regbase + (channel % OPL2CHANNELS);
@@ -117,7 +67,7 @@ alFeedCon			=	0c0h
 alEffects			=	0bdh
 */
 
-void OPLio::OPLwriteInstrument(uint32_t channel, audiot_inst_t *instr)
+void OPLmusicFile::OPLwriteInstrument(uint32_t channel, audiot_inst_t *instr)
 {
 	OPLwriteChannel(0x20, channel, instr->mChar,    instr->cChar);
 	OPLwriteChannel(0x40, channel, instr->mScale,   instr->cScale);
@@ -127,7 +77,7 @@ void OPLio::OPLwriteInstrument(uint32_t channel, audiot_inst_t *instr)
 	OPLwriteValue  (0xC0, channel, 0x30);
 }
 
-void OPLio::OPLwriteInstrument(uint32_t channel, genmidi_inst_t *instr)
+void OPLmusicFile::OPLwriteInstrument(uint32_t channel, genmidi_inst_t *instr)
 {
 	OPLwriteChannel(0x20, channel, instr->mChar,    instr->cChar);
 	OPLwriteChannel(0x40, channel, instr->mScale,   instr->cScale);
@@ -140,7 +90,7 @@ void OPLio::OPLwriteInstrument(uint32_t channel, genmidi_inst_t *instr)
 /*
 * Stop all sounds
 */
-void OPLio::OPLshutup(void)
+void OPLmusicFile::OPLshutup(void)
 {
 	uint32_t i;
 
@@ -156,7 +106,7 @@ void OPLio::OPLshutup(void)
 /*
 * Initialize hardware upon startup
 */
-int OPLio::OPLinit()
+int OPLmusicFile::OPLinit()
 {
 	uint32_t i;
 
@@ -175,7 +125,7 @@ int OPLio::OPLinit()
 	return i;
 }
 
-void OPLio::OPLwriteInitState()
+void OPLmusicFile::OPLwriteInitState()
 {
 	for (uint32_t i = 0; i < MAXOPL2CHIPS; ++i)
 	{
@@ -192,7 +142,7 @@ void OPLio::OPLwriteInitState()
 /*
 * Deinitialize hardware before shutdown
 */
-void OPLio::OPLdeinit(void)
+void OPLmusicFile::OPLdeinit(void)
 {
 	for (size_t i = 0; i < countof(chips); ++i)
 	{
@@ -206,15 +156,15 @@ void OPLio::OPLdeinit(void)
 
 int OPLmusicFile::releaseChannel(uint32_t slot, uint32_t killed)
 {
-	io->OPLwriteChannel(0x80, slot, 0x0F, 0x0F);  // release rate - fastest
-	io->OPLwriteChannel(0x40, slot, 0x3F, 0x3F);  // no volume
+	OPLwriteChannel(0x80, slot, 0x0F, 0x0F);  // release rate - fastest
+	OPLwriteChannel(0x40, slot, 0x3F, 0x3F);  // no volume
 	return slot;
 }
 
 void OPLmusicFile::OPLstopMusic()
 {
 	uint32_t i;
-	for(i = 0; i < io->OPLchannels; i++)
+	for(i = 0; i < OPLchannels; i++)
 		releaseChannel(i, 1);
 }
 
@@ -225,15 +175,8 @@ OPLmusicFile::OPLmusicFile (FILE *file, const uint8_t *musiccache, size_t len)
 	NextTickIn = 0;
 	LastOffset = 0;
 	NumChips = MIN(*opl_numchips, 2);
-	io = NULL;
-	io = new OPLio;
 	ScoreLen = len;
 	ImfRate = 700;
-
-	if (io == NULL)
-	{
-		return;
-	}
 
 	scoredata = new uint8_t[len];
 
@@ -251,7 +194,7 @@ fail:		delete[] scoredata;
 		memcpy(scoredata, &musiccache[0], len);
 	}
 
-	if (0 == (NumChips = io->OPLinit()))
+	if (0 == (NumChips = OPLinit()))
 	{
 		goto fail;
 	}
@@ -342,7 +285,7 @@ fail:		delete[] scoredata;
 		SamplesPerTick = OPL_SAMPLE_RATE / 140;
 		oplsound_t * sound = (oplsound_t*)scoredata;
 		Octave = sound->octave;
-		io->OPLwriteInstrument(0, &sound->inst);
+		OPLwriteInstrument(0, &sound->inst);
 		ScoreLen = len;
 		score = scoredata + sizeof(oplsound_t);
 	}
@@ -360,8 +303,7 @@ OPLmusicFile::~OPLmusicFile ()
 {
 	if (scoredata != NULL)
 	{
-		io->OPLdeinit ();
-		delete io;
+		OPLdeinit ();
 		delete[] scoredata;
 		scoredata = NULL;
 	}
@@ -411,7 +353,7 @@ void OPLmusicFile::Restart ()
 		score = scoredata + sizeof(oplsound_t);
 		oplsound_t * sound = (oplsound_t*)scoredata;
 		Octave = sound->octave;
-		io->OPLwriteInstrument(0, &sound->inst);
+		OPLwriteInstrument(0, &sound->inst);
 		break;
 	}
 }
@@ -437,7 +379,7 @@ bool OPLmusicFile::ServiceStream (void *buff, int numbytes)
 		{
 			for (i = 0; i < MAXOPL2CHIPS; ++i)
 			{
-				io->chips[i]->Update(samples1, samplesleft);
+				chips[i]->Update(samples1, samplesleft);
 			}
 			OffsetSamples(samples1, samplesleft << stereoshift);
 			assert(NextTickIn == ticky);
@@ -457,7 +399,7 @@ bool OPLmusicFile::ServiceStream (void *buff, int numbytes)
 				{
 					for (i = 0; i < MAXOPL2CHIPS; ++i)
 					{
-						io->chips[i]->Update(samples1, numsamples);
+						chips[i]->Update(samples1, numsamples);
 					}
 					OffsetSamples(samples1, numsamples << stereoshift);
 				}
@@ -595,7 +537,7 @@ int OPLmusicFile::PlayTick ()
 				break;
 
 			default:	// It's something to stuff into the OPL chip
-				io->OPLwriteReg(WhichChip, reg, data);
+				OPLwriteReg(WhichChip, reg, data);
 				break;
 			}
 		}
@@ -635,7 +577,7 @@ int OPLmusicFile::PlayTick ()
 			{
 				data = *score++;
 			}
-			io->OPLwriteReg(WhichChip, reg, data);
+			OPLwriteReg(WhichChip, reg, data);
 		}
 		break;
 
@@ -665,7 +607,7 @@ int OPLmusicFile::PlayTick ()
 				}
 				else if (code < to_reg_size)
 				{
-					io->OPLwriteReg(which, to_reg[code], data);
+					OPLwriteReg(which, to_reg[code], data);
 				}
 			}
 		}
@@ -683,19 +625,19 @@ int OPLmusicFile::PlayTick ()
 			data = score[1];
 			delay = READ_L16(score, 2);
 			score += 4;
-			io->OPLwriteReg (0, reg, data);
+			OPLwriteReg (0, reg, data);
 		}
 		return delay;
 	case AudioT:
-		if (score < ScoreEnd)
+		if (score < ScoreEnd - 1)
 		{
 			uint8_t block = (Octave&7)<<2;
 			if (!score[0])
-				io->OPLwriteReg (0, 0xB0, block);
+				OPLwriteReg (0, 0xB0, block);
 			else
 			{
-				io->OPLwriteReg (0, 0xA0, score[0]);
-				io->OPLwriteReg (0, 0xB0, (block|0x20));
+				OPLwriteReg (0, 0xA0, score[0]);
+				OPLwriteReg (0, 0xB0, (block|0x20));
 			}
 			++score;
 			return 1;
