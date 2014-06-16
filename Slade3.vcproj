@@ -625,6 +625,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\VersionCheck.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\VersionCheck.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\WxStuff.cpp"
 				>
 			</File>
