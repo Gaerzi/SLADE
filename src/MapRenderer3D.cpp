@@ -574,6 +574,9 @@ void MapRenderer3D::renderMap()
 	if (render_3d_things > 0)
 		renderThings();
 
+	// Render transparent stuff
+	renderTransparentWalls();
+
 	// Check elapsed time
 	if (render_max_dist_adaptive)
 	{
@@ -1140,6 +1143,9 @@ void MapRenderer3D::updateLine(unsigned index)
 	double xoff, yoff, sx, sy;
 	bool mixed = theGameConfiguration->mixTexFlats();
 	lines[index].line = line;
+	double alpha = 1.0;
+	if (line->hasProp("alpha"))
+		alpha = line->floatProperty("alpha");
 
 	// Get first side info
 	int floor1 = line->frontSector()->getFloorHeight();
@@ -1297,7 +1303,7 @@ void MapRenderer3D::updateLine(unsigned index)
 
 		// Create quad
 		setupQuad(&quad, line->x1(), line->y1(), line->x2(), line->y2(), top, bottom);
-		quad.colour = colour1;
+		quad.colour = colour1.ampf(1.0f, 1.0f, 1.0f, alpha);
 		quad.light = light1;
 		setupQuadTexCoords(&quad, length, xoff, yoff, false, sx, sy);
 		quad.flags |= MIDTEX;
@@ -1438,7 +1444,7 @@ void MapRenderer3D::updateLine(unsigned index)
 
 		// Create quad
 		setupQuad(&quad, line->x2(), line->y2(), line->x1(), line->y1(), top, bottom);
-		quad.colour = colour2;
+		quad.colour = colour2.ampf(1.0f, 1.0f, 1.0f, alpha);
 		quad.light = light2;
 		setupQuadTexCoords(&quad, length, xoff, yoff, false, sx, sy);
 		quad.flags |= BACK;
@@ -1500,13 +1506,16 @@ void MapRenderer3D::updateLine(unsigned index)
 void MapRenderer3D::renderQuad(MapRenderer3D::quad_3d_t* quad, float alpha)
 {
 	// Setup special rendering options
-	if (quad->flags & SKY && render_3d_sky)
+	if (quad->colour.a == 255)
 	{
-		alpha = 0;
-		glDisable(GL_ALPHA_TEST);
+		if (quad->flags & SKY && render_3d_sky)
+		{
+			alpha = 0;
+			glDisable(GL_ALPHA_TEST);
+		}
+		else if (quad->flags & MIDTEX)
+			glAlphaFunc(GL_GREATER, 0.9f*alpha);
 	}
-	else if (quad->flags & MIDTEX)
-		glAlphaFunc(GL_GREATER, 0.9f*alpha);
 
 	// Setup colour/light
 	setLight(quad->colour, quad->light, alpha);
@@ -1520,10 +1529,13 @@ void MapRenderer3D::renderQuad(MapRenderer3D::quad_3d_t* quad, float alpha)
 	glEnd();
 
 	// Reset settings
-	if (quad->flags & SKY && render_3d_sky)
-		glEnable(GL_ALPHA_TEST);
-	else if (quad->flags & MIDTEX)
-		glAlphaFunc(GL_GREATER, 0.0f);
+	if (quad->colour.a == 255)
+	{
+		if (quad->flags & SKY && render_3d_sky)
+			glEnable(GL_ALPHA_TEST);
+		else if (quad->flags & MIDTEX)
+			glAlphaFunc(GL_GREATER, 0.0f);
+	}
 }
 
 /* MapRenderer3D::renderWalls
@@ -1532,6 +1544,7 @@ void MapRenderer3D::renderQuad(MapRenderer3D::quad_3d_t* quad, float alpha)
 void MapRenderer3D::renderWalls()
 {
 	// Init
+	quads_transparent.clear();
 	glEnable(GL_TEXTURE_2D);
 	glCullFace(GL_BACK);
 
@@ -1543,6 +1556,15 @@ void MapRenderer3D::renderWalls()
 		a = 0;
 		while (a < n_quads)
 		{
+			// Check alpha
+			if (quads[a]->colour.a < 255)
+			{
+				quads_transparent.push_back(quads[a]);
+				quads[a] = quads[n_quads-1];
+				n_quads--;
+				continue;
+			}
+
 			// Check texture
 			if (!tex_last && quads[a]->texture)
 			{
@@ -1563,6 +1585,37 @@ void MapRenderer3D::renderWalls()
 	}
 
 	glDisable(GL_TEXTURE_2D);
+}
+
+/* MapRenderer3D::renderTransparentWalls
+ * Renders all currently visible transparent wall quads
+ *******************************************************************/
+void MapRenderer3D::renderTransparentWalls()
+{
+	// Init
+	glEnable(GL_TEXTURE_2D);
+	glDepthMask(GL_FALSE);
+	glDisable(GL_ALPHA_TEST);
+	glCullFace(GL_BACK);
+
+	// Render all transparent quads
+	tex_last = NULL;
+	for (unsigned a = 0; a < quads_transparent.size(); a++)
+	{
+		// Check texture
+		if (quads_transparent[a]->texture != tex_last)
+		{
+			tex_last = quads_transparent[a]->texture;
+			quads_transparent[a]->texture->bind();
+		}
+
+		// Render quad
+		renderQuad(quads_transparent[a], quads_transparent[a]->alpha);
+	}
+
+	glDisable(GL_TEXTURE_2D);
+	glDepthMask(GL_TRUE);
+	glEnable(GL_ALPHA_TEST);
 }
 
 /* MapRenderer3D::renderWallSelection
