@@ -62,6 +62,8 @@ AudioEntryPanel::AudioEntryPanel(wxWindow* parent) : EntryPanel(parent, "audio")
 	timer_seek = new wxTimer(this);
 	sound_buffer = NULL;
 	audio_type = AUTYPE_INVALID;
+	num_tracks = 1;
+	subsong = 0;
 
 #ifdef __WXMSW__
 	wxRegKey key(wxRegKey::HKLM, "Software\\Microsoft\\Active Setup\\Installed Components\\{6BF52A52-394A-11d3-B153-00C04F79FAA6}");
@@ -93,7 +95,7 @@ AudioEntryPanel::AudioEntryPanel(wxWindow* parent) : EntryPanel(parent, "audio")
 
 	// Add seekbar
 	slider_seek = new wxSlider(this, -1, 0, 0, 100);
-	sizer_gb->Add(slider_seek, wxGBPosition(0, 0), wxGBSpan(1, 6), wxEXPAND);
+	sizer_gb->Add(slider_seek, wxGBPosition(0, 0), wxGBSpan(1, 9), wxEXPAND);
 
 	// Add play controls
 	btn_play = new wxBitmapButton(this, -1, getIcon("i_play"));
@@ -102,15 +104,31 @@ AudioEntryPanel::AudioEntryPanel(wxWindow* parent) : EntryPanel(parent, "audio")
 	sizer_gb->Add(btn_pause, wxGBPosition(1, 1));
 	btn_stop = new wxBitmapButton(this, -1, getIcon("i_stop"));
 	sizer_gb->Add(btn_stop, wxGBPosition(1, 2));
+	btn_prev = new wxBitmapButton(this, -1, getIcon("i_prev"));
+	sizer_gb->Add(btn_prev, wxGBPosition(1, 3));
+	btn_next = new wxBitmapButton(this, -1, getIcon("i_next"));
+	sizer_gb->Add(btn_next, wxGBPosition(1, 4));
+
+	// Add title
+	txt_title = new wxStaticText(this, -1, wxEmptyString);
+	sizer_gb->Add(txt_title, wxGBPosition(3, 0), wxGBSpan(3, 9));
+
+	// Add info
+	txt_info = new wxTextCtrl(this, -1, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE|wxTE_READONLY|wxTE_BESTWRAP);
+	sizer_gb->Add(txt_info, wxGBPosition(6, 0), wxGBSpan(9, 9), wxEXPAND|wxHORIZONTAL);
+
+	// Add track number
+	txt_track = new wxStaticText(this, -1, "1/1");
+	sizer_gb->Add(txt_track, wxGBPosition(1, 5), wxDefaultSpan, wxALIGN_CENTER);
 
 	// Separator
-	sizer_gb->Add(new wxStaticLine(this, -1, wxDefaultPosition, wxDefaultSize, wxLI_VERTICAL), wxGBPosition(1, 3), wxDefaultSpan, wxEXPAND|wxLEFT|wxRIGHT, 8);
+	sizer_gb->Add(new wxStaticLine(this, -1, wxDefaultPosition, wxDefaultSize, wxLI_VERTICAL), wxGBPosition(1, 6), wxDefaultSpan, wxEXPAND|wxLEFT|wxRIGHT, 8);
 
 	// Add volume slider
-	sizer_gb->Add(new wxStaticText(this, -1, "Volume:"), wxGBPosition(1, 4), wxDefaultSpan, wxALIGN_CENTER_VERTICAL);
+	sizer_gb->Add(new wxStaticText(this, -1, "Volume:"), wxGBPosition(1, 7), wxDefaultSpan, wxALIGN_CENTER_VERTICAL);
 	slider_volume = new wxSlider(this, -1, 0, 0, 100, wxDefaultPosition, wxSize(128, -1));
 	slider_volume->SetValue(snd_volume);
-	sizer_gb->Add(slider_volume, wxGBPosition(1, 5));
+	sizer_gb->Add(slider_volume, wxGBPosition(1, 8));
 
 	// Set volume
 	sound.setVolume(snd_volume);
@@ -120,6 +138,8 @@ AudioEntryPanel::AudioEntryPanel(wxWindow* parent) : EntryPanel(parent, "audio")
 #ifndef NOLIBMODPLUG
 	mod.setVolume(snd_volume);
 #endif
+	theGMEPlayer->setVolume(snd_volume);
+	theOPLPlayer->setVolume(snd_volume);
 
 	// Disable general entrypanel buttons
 	if (media_ctrl) media_ctrl->Show(false);
@@ -129,6 +149,8 @@ AudioEntryPanel::AudioEntryPanel(wxWindow* parent) : EntryPanel(parent, "audio")
 	btn_play->Bind(wxEVT_BUTTON, &AudioEntryPanel::onBtnPlay, this);
 	btn_pause->Bind(wxEVT_BUTTON, &AudioEntryPanel::onBtnPause, this);
 	btn_stop->Bind(wxEVT_BUTTON, &AudioEntryPanel::onBtnStop, this);
+	btn_prev->Bind(wxEVT_BUTTON, &AudioEntryPanel::onBtnPrev, this);
+	btn_next->Bind(wxEVT_BUTTON, &AudioEntryPanel::onBtnNext, this);
 	slider_seek->Bind(wxEVT_SLIDER, &AudioEntryPanel::onSliderSeekChanged, this);
 	slider_volume->Bind(wxEVT_SLIDER, &AudioEntryPanel::onSliderVolumeChanged, this);
 	Bind(wxEVT_TIMER, &AudioEntryPanel::onTimer, this);
@@ -143,7 +165,7 @@ AudioEntryPanel::~AudioEntryPanel()
 {
 	// Stop the timer to avoid crashes
 	timer_seek->Stop();
-	theMIDIPlayer->stop();
+	resetStream();
 }
 
 /* AudioEntryPanel::loadEntry
@@ -161,6 +183,8 @@ bool AudioEntryPanel::loadEntry(ArchiveEntry* entry)
 	btn_play->Enable();
 	btn_pause->Enable();
 	btn_stop->Enable();
+	btn_prev->Enable();
+	btn_next->Enable();
 
 	// Reset seek slider
 	slider_seek->SetValue(0);
@@ -169,10 +193,13 @@ bool AudioEntryPanel::loadEntry(ArchiveEntry* entry)
 	if (wxFileExists(prevfile))
 		wxRemoveFile(prevfile);
 
+	// Open new data
+	this->entry = entry;
+	open();
+
 	// Autoplay if option is on
 	if (snd_autoplay)
 	{
-		this->entry = entry;
 		startStream();
 		timer_seek->Start(10);
 	}
@@ -216,6 +243,12 @@ bool AudioEntryPanel::open()
 	if (opened)
 		return true;
 
+	// Stop if sound currently playing
+	resetStream();
+
+	subsong = 0;
+	num_tracks = 1;
+
 	// Get entry data
 	MemChunk& mcdata = entry->getMCData();
 
@@ -232,6 +265,8 @@ bool AudioEntryPanel::open()
 		Conversions::doomSndToWav(mcdata, convdata);
 	else if (entry->getType()->getFormat() == "snd_speaker")	// Doom PC Speaker Sound -> WAV
 		Conversions::spkSndToWav(mcdata, convdata);
+	else if (entry->getType()->getFormat() == "snd_audiot")	// AudioT PC Speaker Sound -> WAV
+		Conversions::spkSndToWav(mcdata, convdata, true);
 	else if (entry->getType()->getFormat() == "snd_wolf")		// Wolfenstein 3D Sound -> WAV
 		Conversions::wolfSndToWav(mcdata, convdata);
 	else if (entry->getType()->getFormat() == "snd_voc")		// Creative Voice File -> WAV
@@ -242,19 +277,24 @@ bool AudioEntryPanel::open()
 		Conversions::bloodToWav(entry, convdata);
 	else if (entry->getType()->getFormat() == "mus")  			// MUS -> MIDI
 	{
-		Conversions::zmusToMidi(mcdata, convdata);
+		Conversions::musToMidi(mcdata, convdata);
 		path.SetExt("mid");
 	}
 	else if (entry->getType()->getFormat() == "xmi" ||  			// HMI/HMP/XMI -> MIDI
 				entry->getType()->getFormat() == "hmi" || entry->getType()->getFormat() == "hmp")
 	{
-		Conversions::zmusToMidi(mcdata, convdata);
+		Conversions::zmusToMidi(mcdata, convdata, 0, &num_tracks);
 		path.SetExt("mid");
 	}
 	else if (entry->getType()->getFormat() == "gmid")  			// GMID -> MIDI
 	{
 		Conversions::gmidToMidi(mcdata, convdata);
 		path.SetExt("mid");
+	}
+	else if (entry->getType()->getFormat() == "opl_imf_raw")
+	{
+		Conversions::addImfHeader(mcdata, convdata);
+		path.SetExt("imf");
 	}
 	else
 		convdata.importMem(mcdata.getData(), mcdata.getSize());
@@ -265,13 +305,20 @@ bool AudioEntryPanel::open()
 		entry->getType()->getFormat() == "hmp"  || entry->getType()->getFormat() == "hmi")
 	{
 		audio_type = AUTYPE_MIDI;
-		convdata.exportFile(path.GetFullPath());
-		openMidi(path.GetFullPath());
+		openMidi(convdata, path.GetFullPath());
 	}
 
 	// MOD format
 	else if (entry->getType()->getFormat().StartsWith("mod_"))
 		openMod(convdata);
+
+	// Emulated format
+	else if (entry->getType()->getFormat().StartsWith("gme_"))
+		openEmu(convdata);
+
+	// OPL formats
+	else if (entry->getType()->getFormat().StartsWith("opl_"))
+		openOpl(convdata);
 
 	// Other format
 	else
@@ -279,6 +326,17 @@ bool AudioEntryPanel::open()
 
 	// Keep filename so we can delete it later
 	prevfile = path.GetFullPath();
+
+	txt_title->SetLabel(entry->getPath(true));
+	txt_track->SetLabel(S_FMT("%d/%d", subsong+1, num_tracks));
+	updateInfo();
+
+	// Disable prev/next track buttons if only one track is available
+	if (num_tracks < 2)
+	{
+		btn_prev->Disable();
+		btn_next->Disable();
+	}
 
 	opened = true;
 	return true;
@@ -290,11 +348,7 @@ bool AudioEntryPanel::open()
 bool AudioEntryPanel::openAudio(MemChunk& audio, string filename)
 {
 	// Stop if sound currently playing
-	sound.stop();
-	music.stop();
-#ifndef NOLIBMODPLUG
-	mod.stop();
-#endif
+	resetStream();
 
 	// (Re)create sound buffer
 	if (sound_buffer)
@@ -356,7 +410,7 @@ bool AudioEntryPanel::openAudio(MemChunk& audio, string filename)
  * Opens a MIDI file for playback
  *******************************************************************/
 bool nosf_warned = false;	// One-time 'no soundfont loaded' warning
-bool AudioEntryPanel::openMidi(string filename)
+bool AudioEntryPanel::openMidi(MemChunk& data, string filename)
 {
 	// Enable volume control
 	slider_volume->Enable(true);
@@ -364,7 +418,7 @@ bool AudioEntryPanel::openMidi(string filename)
 	// Attempt to open midi
 	if (theMIDIPlayer->isInitialised() && theMIDIPlayer->isSoundfontLoaded())
 	{
-		if (theMIDIPlayer->openFile(filename))
+		if (theMIDIPlayer->openData(data))
 		{
 			// Enable play controls
 			btn_play->Enable();
@@ -380,6 +434,7 @@ bool AudioEntryPanel::openMidi(string filename)
 	else
 	{
 		// MIDI Player not initialised (no soundfont set), attempt to open with wxMediaCtrl
+		data.exportFile(filename);
 		if (openMedia(filename))
 			return true;
 	}
@@ -428,6 +483,68 @@ bool AudioEntryPanel::openMod(MemChunk& data)
 	return false;
 }
 
+/* AudioEntryPanel::openEmu
+* Opens a GME file for playback
+*******************************************************************/
+bool AudioEntryPanel::openEmu(MemChunk& data)
+{
+	// Attempt to load the mod
+	if (theGMEPlayer->openData(data, 0, &num_tracks))
+	{
+		audio_type = AUTYPE_EMU;
+
+		// Enable playback controls
+		slider_volume->Enable();
+		btn_play->Enable();
+		btn_pause->Enable();
+		btn_stop->Enable();
+		setAudioDuration(theGMEPlayer->getLength());
+
+		return true;
+	}
+	else
+	{
+		// Disable playback controls
+		slider_volume->Enable();
+		btn_play->Enable();
+		btn_pause->Enable();
+		btn_stop->Enable();
+		setAudioDuration(0);
+	}
+	return false;
+}
+
+/* AudioEntryPanel::openOpl
+* Opens a OPL file for playback
+*******************************************************************/
+bool AudioEntryPanel::openOpl(MemChunk& data)
+{
+	// Attempt to load the mod
+	if (theOPLPlayer->openData(data, 0, &num_tracks))
+	{
+		audio_type = AUTYPE_OPL;
+
+		// Enable playback controls
+		slider_volume->Enable();
+		btn_play->Enable();
+		btn_pause->Enable();
+		btn_stop->Enable();
+		setAudioDuration(theOPLPlayer->getLength());
+
+		return true;
+	}
+	else
+	{
+		// Disable playback controls
+		slider_volume->Enable();
+		btn_play->Enable();
+		btn_pause->Enable();
+		btn_stop->Enable();
+		setAudioDuration(0);
+	}
+	return false;
+}
+
 /* AudioEntryPanel::openMedia
 * Opens audio file [filename] in the wxMediaCtrl
 *******************************************************************/
@@ -473,7 +590,12 @@ void AudioEntryPanel::startStream()
 		theMIDIPlayer->play(); break;
 	case AUTYPE_MEDIA:
 		if (media_ctrl) media_ctrl->Play(); break;
+	case AUTYPE_EMU:
+		theGMEPlayer->play(); break;
+	case AUTYPE_OPL:
+		theOPLPlayer->play(); break;
 	}
+	updateInfo();
 }
 
 /* AudioEntryPanel::stopStream
@@ -495,6 +617,10 @@ void AudioEntryPanel::stopStream()
 		theMIDIPlayer->pause(); break;
 	case AUTYPE_MEDIA:
 		if (media_ctrl) media_ctrl->Pause(); break;
+	case AUTYPE_EMU:
+		theGMEPlayer->pause(); break;
+	case AUTYPE_OPL:
+		theOPLPlayer->pause(); break;
 	}
 }
 
@@ -518,9 +644,47 @@ void AudioEntryPanel::resetStream()
 		theMIDIPlayer->stop(); break;
 	case AUTYPE_MEDIA:
 		if (media_ctrl) media_ctrl->Stop(); break;
+	case AUTYPE_EMU:
+		theGMEPlayer->stop(); break;
+	case AUTYPE_OPL:
+		theOPLPlayer->stop(); break;
 	}
 }
 
+/* AudioEntryPanel::updateInfo
+ * Used to update the info area, returns true if info is non-empty
+ *******************************************************************/
+bool AudioEntryPanel::updateInfo()
+{
+	txt_info->Clear();
+	string info;
+	switch (audio_type)
+	{
+	case AUTYPE_SOUND:
+		break;
+	case AUTYPE_MUSIC:
+		break;
+#ifndef NOLIBMODPLUG
+	case AUTYPE_MOD:
+		break;
+#endif
+	case AUTYPE_MIDI:
+		info = theMIDIPlayer->getInfo();
+		break;
+	case AUTYPE_MEDIA:
+		break;
+	case AUTYPE_EMU:
+		info = theGMEPlayer->getInfo(subsong);
+		break;
+	case AUTYPE_OPL:
+		info = theOPLPlayer->getInfo();
+		break;
+	}
+	txt_info->SetValue(info);
+	if (info.length())
+		return true;
+	return false;
+}
 
 /*******************************************************************
  * AUDIOENTRYPANEL CLASS EVENTS
@@ -559,6 +723,50 @@ void AudioEntryPanel::onBtnStop(wxCommandEvent& e)
 	slider_seek->SetValue(0);
 }
 
+/* AudioEntryPanel::onBtnPrev
+ * Called when the previous track button is pressed
+ *******************************************************************/
+void AudioEntryPanel::onBtnPrev(wxCommandEvent& e)
+{
+	if (subsong > 0)
+		subsong--;
+	else subsong = num_tracks - 1;
+
+	if (entry->getType()->getFormat() == "xmi")
+	{
+		MemChunk& mcdata = entry->getMCData();
+		MemChunk convdata;
+		if (Conversions::zmusToMidi(mcdata, convdata, subsong))
+			openMidi(convdata, prevfile);
+	}
+	else if (entry->getType()->getFormat().StartsWith("gme"))
+		theGMEPlayer->play(subsong);
+	txt_track->SetLabel(S_FMT("%d/%d", subsong+1, num_tracks));
+	updateInfo();
+}
+
+/* AudioEntryPanel::onBtnNext
+ * Called when the next track button is pressed
+ *******************************************************************/
+void AudioEntryPanel::onBtnNext(wxCommandEvent& e)
+{
+	int newsong = (subsong + 1) % num_tracks;
+	if (entry->getType()->getFormat() == "xmi")
+	{
+		MemChunk& mcdata = entry->getMCData();
+		MemChunk convdata;
+		if (Conversions::zmusToMidi(mcdata, convdata, newsong) && openMidi(convdata, prevfile))
+			subsong = newsong;
+	}
+	else if (entry->getType()->getFormat().StartsWith("gme"))
+	{
+		if (theGMEPlayer->play(newsong))
+			subsong = newsong;
+	}
+	txt_track->SetLabel(S_FMT("%d/%d", subsong+1, num_tracks));
+	updateInfo();
+}
+
 /* AudioEntryPanel::onTimer
  * Called when the playback timer ticks
  *******************************************************************/
@@ -581,6 +789,10 @@ void AudioEntryPanel::onTimer(wxTimerEvent& e)
 		pos = theMIDIPlayer->getPosition(); break;
 	case AUTYPE_MEDIA:
 		if (media_ctrl) pos = media_ctrl->Tell(); break;
+	case AUTYPE_EMU:
+		pos = theGMEPlayer->getPosition(); break;
+	case AUTYPE_OPL:
+		pos = theOPLPlayer->getPosition(); break;
 	}
 
 	// Set slider
@@ -593,7 +805,9 @@ void AudioEntryPanel::onTimer(wxTimerEvent& e)
 #ifndef NOLIBMODPLUG
 	        (audio_type == AUTYPE_MOD && mod.getStatus() == sf::Sound::Stopped) ||
 #endif
-			(audio_type == AUTYPE_MEDIA && media_ctrl && media_ctrl->GetState() == wxMEDIASTATE_STOPPED))
+	        (audio_type == AUTYPE_EMU && theGMEPlayer->getStatus() == sf::Sound::Stopped) ||
+	        (audio_type == AUTYPE_OPL && theOPLPlayer->getStatus() == sf::Sound::Stopped) ||
+	        (audio_type == AUTYPE_MEDIA && media_ctrl && media_ctrl->GetState() == wxMEDIASTATE_STOPPED))
 		timer_seek->Stop();
 }
 
@@ -616,6 +830,10 @@ void AudioEntryPanel::onSliderSeekChanged(wxCommandEvent& e)
 		theMIDIPlayer->setPosition(slider_seek->GetValue()); break;
 	case AUTYPE_MEDIA:
 		if (media_ctrl) media_ctrl->Seek(slider_seek->GetValue()); break;
+	case AUTYPE_EMU:
+		theGMEPlayer->setPosition(slider_seek->GetValue()); break;
+	case AUTYPE_OPL:
+		theOPLPlayer->setPosition(slider_seek->GetValue()); break;
 	}
 }
 
@@ -640,5 +858,9 @@ void AudioEntryPanel::onSliderVolumeChanged(wxCommandEvent& e)
 	case AUTYPE_MOD:
 		mod.setVolume(snd_volume); break;
 #endif
+	case AUTYPE_EMU:
+		theGMEPlayer->setVolume(snd_volume); break;
+	case AUTYPE_OPL:
+		theOPLPlayer->setVolume(snd_volume); break;
 	}
 }
