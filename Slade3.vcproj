@@ -1125,6 +1125,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\MapSpecials.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\MapSpecials.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\MapTextureManager.cpp"
 				>
 			</File>
