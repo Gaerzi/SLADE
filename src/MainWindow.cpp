@@ -61,6 +61,7 @@ CVAR(Bool, show_start_page, true, CVAR_SAVE);
 CVAR(String, global_palette, "", CVAR_SAVE);
 CVAR(Bool, mw_maximized, true, CVAR_SAVE);
 CVAR(Int, tab_style, 1, CVAR_SAVE);
+CVAR(Bool, confirm_exit, true, CVAR_SAVE);
 
 
 /*******************************************************************
@@ -380,13 +381,14 @@ void MainWindow::setupLayout()
 	Bind(wxEVT_CLOSE_WINDOW, &MainWindow::onClose, this);
 	Bind(wxEVT_AUINOTEBOOK_PAGE_CHANGED, &MainWindow::onTabChanged, this);
 	Bind(wxEVT_STOOLBAR_LAYOUT_UPDATED, &MainWindow::onToolBarLayoutChanged, this, toolbar->GetId());
+	Bind(wxEVT_ACTIVATE, &MainWindow::onActivate, this);
 }
 
 /* MainWindow::createStartPage
  * Builds the HTML start page and loads it into the html viewer
  * (start page tab)
  *******************************************************************/
-void MainWindow::createStartPage()
+void MainWindow::createStartPage(bool newtip)
 {
 	// Get relevant resource entries
 	Archive* res_archive = theArchiveManager->programResourceArchive();
@@ -428,9 +430,14 @@ void MainWindow::createStartPage()
 		else
 		{
 			int tipindex = 0;
-			// Don't show same tip twice in a row
-			do { tipindex = 1 + (rand() % numtips); }
-			while (tipindex == lasttipindex);
+			if (newtip || lasttipindex == 0)
+			{
+				// Don't show same tip twice in a row
+				do { tipindex = 1 + (rand() % numtips); } while (tipindex == lasttipindex);
+			}
+			else
+				tipindex = lasttipindex;
+			
 			lasttipindex = tipindex;
 			for (int a = 0; a < tipindex; a++)
 				tip = tz.getToken();
@@ -506,6 +513,13 @@ bool MainWindow::exitProgram()
 	// Close all archives
 	if (!panel_archivemanager->closeAll())
 		return false;
+
+	// Confirm exit
+	if (confirm_exit && !panel_archivemanager->askedSaveUnchanged())
+	{
+		if (wxMessageBox("Are you sure you want to exit SLADE?", "SLADE", wxICON_QUESTION|wxYES_NO, this) != wxYES)
+			return false;
+	}
 
 	// Save current layout
 	//main_window_layout = m_mgr->SavePerspective();
@@ -859,4 +873,29 @@ void MainWindow::onToolBarLayoutChanged(wxEvent& e)
 	// Update toolbar size
 	m_mgr->GetPane(toolbar).MinSize(-1, toolbar->minHeight());
 	m_mgr->Update();
+}
+
+/* MainWindow::onActivate
+ * Called when the window is activated
+ *******************************************************************/
+void MainWindow::onActivate(wxActivateEvent& e)
+{
+	if (!e.GetActive() || this->IsBeingDeleted())
+	{
+		e.Skip();
+		return;
+	}
+
+	// Get current tab
+	wxWindow* page = notebook_tabs->GetPage(notebook_tabs->GetSelection());
+
+	// If start page is selected, refresh it
+	if (page && page->GetName() == "startpage")
+	{
+		createStartPage(false);
+		SetStatusText("", 1);
+		SetStatusText("", 2);
+	}
+
+	e.Skip();
 }
