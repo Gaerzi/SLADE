@@ -1185,12 +1185,6 @@
     <ClCompile Include="src\MapSpecials.cpp">
       <Filter>Map Editor</Filter>
     </ClCompile>
-    <ClCompile Include="src\DocsPage.cpp">
-      <Filter>Main Editor\UI Elements</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Dialogs\DirArchiveUpdateDialog.cpp">
-      <Filter>Dialogs</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\GfxConvDialog.h">
@@ -2141,12 +2135,6 @@
     </ClInclude>
     <ClInclude Include="src\MapSpecials.h">
       <Filter>Map Editor</Filter>
-    </ClInclude>
-    <ClInclude Include="src\DocsPage.h">
-      <Filter>Main Editor\UI Elements</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Dialogs\DirArchiveUpdateDialog.h">
-      <Filter>Dialogs</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
