@@ -313,9 +313,6 @@ protected:
 		MemChunk backup(image.getWidth()*image.getHeight());
 		backup.write(imageData(image), image.getWidth()*image.getHeight());
 
-		// Make sure all used colors are in the first 16 entries of the palette
-		image.shrinkPalette();
-
 		size_t filesize = image.getWidth() * image.getHeight() / 2;
 		uint8_t* temp = new uint8_t[filesize];
 
