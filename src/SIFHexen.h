@@ -120,6 +120,7 @@ protected:
 		usepal.copyPalette(image.getPalette());
 
 		// Create planar palette
+		out.clear();
 		uint8_t* mycolors = new uint8_t[3];
 		for (size_t i = 0; i < 16; ++i)
 		{
@@ -284,7 +285,7 @@ protected:
 		// Check if data is paletted
 		if (image.getType() != PALMASK)
 		{
-			wxLogMessage("Cannot convert truecolour image to 4-bit format - convert to 16-colour first.");
+			wxLogMessage("Cannot convert truecolour image to 4-bit format - convert to paletted first.");
 			return false;
 		}
 
@@ -324,6 +325,7 @@ protected:
 		}
 
 		// Write image and cleanup
+		out.clear();
 		out.write(temp, filesize);
 		delete[] temp;
 		backup.seek(0, SEEK_SET);
