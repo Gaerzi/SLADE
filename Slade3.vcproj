@@ -1702,7 +1702,15 @@
 							>
 						</File>
 						<File
+							RelativePath=".\dist\res\config\ports\edge.cfg"
+							>
+						</File>
+						<File
 							RelativePath=".\dist\res\config\ports\eternity.cfg"
+							>
+						</File>
+						<File
+							RelativePath=".\dist\res\config\ports\legacy.cfg"
 							>
 						</File>
 						<File
@@ -1718,6 +1726,10 @@
 							</File>
 							<File
 								RelativePath=".\dist\res\config\ports\include\flags_eternity.cfg"
+								>
+							</File>
+							<File
+								RelativePath=".\dist\res\config\ports\include\flags_legacy.cfg"
 								>
 							</File>
 							<File
@@ -1749,7 +1761,15 @@
 								>
 							</File>
 							<File
+								RelativePath=".\dist\res\config\ports\include\specials_edge.cfg"
+								>
+							</File>
+							<File
 								RelativePath=".\dist\res\config\ports\include\specials_eternity.cfg"
+								>
+							</File>
+							<File
+								RelativePath=".\dist\res\config\ports\include\specials_legacy.cfg"
 								>
 							</File>
 							<File
@@ -1766,6 +1786,10 @@
 							</File>
 							<File
 								RelativePath=".\dist\res\config\ports\include\things_eternity.cfg"
+								>
+							</File>
+							<File
+								RelativePath=".\dist\res\config\ports\include\things_legacy.cfg"
 								>
 							</File>
 							<File
