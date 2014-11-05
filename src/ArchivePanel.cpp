@@ -386,6 +386,8 @@ ArchivePanel::ArchivePanel(wxWindow* parent, Archive* archive)
 
 	// Bind events
 	entry_list->Bind(EVT_VLV_SELECTION_CHANGED, &ArchivePanel::onEntryListSelectionChange, this);
+	entry_list->Bind(wxEVT_LIST_ITEM_SELECTED, &ArchivePanel::onEntryListSelectionChange, this);
+	entry_list->Bind(wxEVT_LIST_ITEM_DESELECTED, &ArchivePanel::onEntryListSelectionChange, this);
 #ifndef __WXGTK__
 	entry_list->Bind(wxEVT_LIST_ITEM_FOCUSED, &ArchivePanel::onEntryListFocusChange, this);
 #endif
@@ -2360,8 +2362,8 @@ bool ArchivePanel::openEntry(ArchiveEntry* entry, bool force)
 		return false;
 	}
 
-	// Do nothing if the entry is already open
-	if (cur_area->getEntry() == entry && !force)
+	// Do nothing if the entry is already open and area isn't default panel
+	if (cur_area->getEntry() == entry && !force && cur_area != default_area)
 		return false;
 
 	// Detect entry type if it hasn't been already

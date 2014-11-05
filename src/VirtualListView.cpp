@@ -151,6 +151,7 @@ void VirtualListView::selectItem(long item, bool select)
 		SetItemState(item, 0xFFFF, wxLIST_STATE_SELECTED);
 	else
 		SetItemState(item, 0x0000, wxLIST_STATE_SELECTED);
+	sendSelectionChangedEvent();
 }
 
 /* VirtualListView::selectItems
@@ -178,6 +179,7 @@ void VirtualListView::selectItems(long start, long end, bool select)
 		else
 			SetItemState(a, 0x0000, wxLIST_STATE_SELECTED);
 	}
+	sendSelectionChangedEvent();
 }
 
 /* VirtualListView::selectAll
