@@ -69,6 +69,7 @@ public:
 	string				detectNamespace(ArchiveEntry* entry);
 	string				detectNamespace(size_t index, ArchiveTreeNode * dir = NULL);
 	bool				hasFlatHack();
+	void				detectIncludes();
 
 	// Search
 	ArchiveEntry*			findFirst(search_options_t& options);

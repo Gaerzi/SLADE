@@ -169,6 +169,13 @@ entry_types
 		text_language = "z_mapinfo";
 	}
 	
+	xlat : text
+	{
+		name = "Map Translator (ZDoom)";
+		match_name = "xlat*";
+		text_language = "z_xlat";
+	}
+	
 	menudef : text
 	{
 		name = "Menu Definition";
@@ -344,7 +351,22 @@ entry_types
 		match_extorname = 1;
 		match_ext = "edf";
 		match_name = "edfroot", "estrings", "eterrain", "emenus", "esndseq",
-					 "esndinfo", "efonts", "emapinfo", "edf*";
+					 "esndinfo", "efonts", "edf*";
+	}
+	
+	emapinfo : text
+	{
+		name = "MAPINFO (Eternity)";
+		text_language = "emapinfo";
+		match_name = "emapinfo";
+		text_language = "edf";
+	}
+	
+	extradata : text
+	{
+		name = "Eternity ExtraData";
+		text_language = "edf";
+		detectable = 0;
 	}
 	
 	// PrBoom+ lumps
@@ -386,7 +408,7 @@ entry_types
 	misctext : text
 	{
 		name = "Text";
-		match_name = "extended", "copyrite", "serial", "license", "credits", "iwadinfo";
+		match_name = "extended", "copyrite", "serial", "license", "credits", "iwadinfo", "hacx-e";
 	}
 
 	shaders : text
