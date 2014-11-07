@@ -32,8 +32,6 @@
 #ifndef SFMOD_H
 #define SFMOD_H
 
-#ifndef NOLIBMODPLUG
-
 #define SFMOD_BUFFERSIZE 4096
 
 #include <string>
@@ -265,7 +263,5 @@ private:
 // typedef struct _ModPlugNote ModPlugNote;
 //
 //////////////////////////////////////////////////////////////////////////////
-
-#endif//NOLIBMODPLUG
 
 #endif //SFMOD_H

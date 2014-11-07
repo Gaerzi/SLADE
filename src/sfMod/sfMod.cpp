@@ -29,8 +29,6 @@
 //    distribution.                                                         //
 //////////////////////////////////////////////////////////////////////////////
 
-#ifndef NOLIBMODPLUG
-
 #include "sfMod.h"
 #include "modplug.h"
 
@@ -366,5 +364,3 @@ void sfmod::Mod::onSeek(sf::Time timeOffset)
 {
   ModPlug_Seek(file_, static_cast<int>(timeOffset.asMilliseconds()));
 }
-
-#endif//NOLIBMODPLUG

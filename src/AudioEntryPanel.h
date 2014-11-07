@@ -7,9 +7,7 @@
 
 #undef Status
 #include <SFML/Audio.hpp>
-#ifndef NOLIBMODPLUG
 #include "sfMod/sfMod.h"
-#endif
 #include "GMEPlayer.h"
 #include "OPLPlayer.h"
 
@@ -38,9 +36,7 @@ private:
 	sf::SoundBuffer*	sound_buffer;
 	sf::Sound			sound;
 	sf::Music			music;
-#ifndef NOLIBMODPLUG
 	sfmod::Mod			mod;
-#endif
 
 	enum
 	{
