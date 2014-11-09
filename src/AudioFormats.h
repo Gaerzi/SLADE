@@ -23,7 +23,7 @@ size_t checkForTags(MemChunk& mc)
 	{
 		// Check for ID3 header (ID3v2). Version and revision numbers cannot be FF.
 		// Only the four upper flags are valid.
-		if (mc[s+0] == 'I' && mc[s+1] == 'D' && mc[s+2] == '3' &&
+		while (mc.getSize() > s+14 && mc[s+0] == 'I' && mc[s+1] == 'D' && mc[s+2] == '3' &&
 		        mc[s+3] != 0xFF && mc[s+4] != 0xFF && ((mc[s+5] & 0x0F) == 0) &&
 		        mc[s+6] < 0x80 && mc[s+7] < 0x80 && mc[s+8] < 0x80 && mc[s+9] < 0x80)
 		{
@@ -33,10 +33,15 @@ size_t checkForTags(MemChunk& mc)
 			// If there is a footer, then add 10 more to the size
 			if (mc[s+5] & 0x10) size += 10;
 			// Needs to be at least that big
-			if (mc.getSize() < size + 4)
-				return s;
-			return s+size;
+			if (mc.getSize() >= size + 4)
+				s += size;
+			// Found a stack of MP3 where there always was exactly 626 bytes between the
+			// computed offset value and the real start of the frame. What does it mean?
+			// My guess would be there's a tool out there that outputs wrong synchsafe ints.
+			if ((mc.getSize() > s + 628) && (mc[s] == 0) && (mc[s+626] == 0xFF) && (mc[s+627] == 0xFB))
+				s += 626;
 		}
+		return s;
 	}
 	// It's also possible to get an ID3v1 (or v1.1) tag.
 	// Though normally they're at the end of the file.
@@ -644,18 +649,19 @@ public:
 
 // This function was written using the following page as reference:
 // http://mpgedit.org/mpgedit/mpeg_format/mpeghdr.htm
-int validMPEG(MemChunk& mc, uint8_t layer, size_t size)
+int validMPEG(MemChunk& mc, uint8_t layer, size_t start)
 {
 	// Check size
-	if (mc.getSize() > 4+size)
+	if (mc.getSize() > 4+start)
 	{
 		// Check for MP3 frame header. Warning, it is a very weak signature.
-		uint16_t framesync = ((mc[0+size]<<4) + (mc[1+size]>>4)) & 0xFFE;
+		uint16_t framesync = ((mc[0+start]<<4) + (mc[1+start]>>4)) & 0xFFE;
+
 		// Check for presence of the sync word (the first eleven bits, all set)
 		if (framesync == 0xFFE)
 		{
-			uint8_t version = (mc[1+size]>>3) & 3;
-			uint8_t mylayer = (mc[1+size]>>1) & 3;
+			uint8_t version = (mc[1+start]>>3) & 3;
+			uint8_t mylayer = (mc[1+start]>>1) & 3;
 			// Version: 0 MPEG v2.5 (unofficial), 1 invalid, 2 MPEG v2, 3 MPEG v3
 			// Layer: 0 invalid, 1 III, 2 II, 3 I (this sure makes sense :p)
 			if (version != 1 && mylayer == (4 - layer))
@@ -663,8 +669,8 @@ int validMPEG(MemChunk& mc, uint8_t layer, size_t size)
 				// The bitrate index has values that depend on version and layer,
 				// but 1111b is invalid across the board. Same for sample rate,
 				// 11b is invalid. Finally, an emphasis setting of 10b is bad, too.
-				uint8_t rates = (mc[2+size]>>2);
-				uint8_t emphasis = mc[3+size] & 3;
+				uint8_t rates = (mc[2+start]>>2);
+				uint8_t emphasis = mc[3+start] & 3;
 				if (rates != 0x3F && emphasis != 2)
 				{
 					// More checks could be done here, notably to compute frame length
