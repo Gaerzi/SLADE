@@ -40,7 +40,7 @@
 #ifdef __WXMSW__
 #include <wx/msw/registry.h>
 #endif
-
+#include "AudioTags.h"
 
 /*******************************************************************
  * VARIABLES
@@ -649,25 +649,40 @@ void AudioEntryPanel::resetStream()
 bool AudioEntryPanel::updateInfo()
 {
 	txt_info->Clear();
-	string info;
+	string info = entry->getTypeString() + "\n";
+	MemChunk& mc = entry->getMCData();
 	switch (audio_type)
 	{
 	case AUTYPE_SOUND:
-		break;
 	case AUTYPE_MUSIC:
+	case AUTYPE_MEDIA:
+		if (entry->getType() == EntryType::getType("snd_doom"))
+		{
+			size_t samplerate = READ_L16(mc, 2);
+			size_t samples = READ_L16(mc, 4);
+			info += S_FMT("%d samples at %d Hz", samples, samplerate);
+		}
+		else if (entry->getType() == EntryType::getType("snd_speaker"))
+		{
+			size_t samples = READ_L16(mc, 2);
+			info += S_FMT("%d samples");
+		}
+		else if (entry->getType() == EntryType::getType("snd_mp3"))
+			info += Audio::getID3Tag(mc);
+		else if (entry->getType() == EntryType::getType("snd_ogg")
+				|| entry->getType() == EntryType::getType("snd_flac"))
+			info += Audio::getVorbisTag(mc);
 		break;
 	case AUTYPE_MOD:
 		break;
 	case AUTYPE_MIDI:
-		info = theMIDIPlayer->getInfo();
-		break;
-	case AUTYPE_MEDIA:
+		info += theMIDIPlayer->getInfo();
 		break;
 	case AUTYPE_EMU:
-		info = theGMEPlayer->getInfo(subsong);
+		info += theGMEPlayer->getInfo(subsong);
 		break;
 	case AUTYPE_OPL:
-		info = theOPLPlayer->getInfo();
+		info += theOPLPlayer->getInfo();
 		break;
 	}
 	txt_info->SetValue(info);

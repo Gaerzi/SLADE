@@ -644,6 +644,14 @@
 				Name="Utility"
 				>
 				<File
+					RelativePath=".\src\AudioTags.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\src\AudioTags.h"
+					>
+				</File>
+				<File
 					RelativePath=".\src\CodePages.cpp"
 					>
 				</File>
