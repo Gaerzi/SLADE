@@ -52,6 +52,36 @@ struct id3v1e_t
 	char		start[6];
 	char		stop[6];
 };
+
+struct oggpageheader_t
+{
+	char		tag[4];		// "OggS"
+	uint8_t		version;	// should be 0
+	uint8_t		type;		// should be 1, 2, or 4
+	uint32_t	granule[2];	// abstract time marker
+	uint32_t	serialnum;	// bitstream serial number
+	uint32_t	pagenum;	// page sequence number, should always be 1 more than previous
+	uint32_t	checksum;	// CRC-32 of entire page (including header but with blank checksum)
+	uint8_t		segments;	// number of segments
+};
+
+struct vorbisheader_t
+{
+	uint8_t		packettype;	// 1 (identification), 3 (comment), or 5 (setup)
+	char		tag[6];		// "vorbis"
+};
+struct vorbisid_t
+{
+	uint32_t	version;	// should be 0
+	uint8_t		channels;	// should not be 0
+	uint32_t	samplerate;	// should not be 0 either
+	int32_t		maxbitrate;
+	int32_t		nombitrate;
+	int32_t		minbitrate;
+	uint32_t	blocksize0;
+	uint32_t	blocksize1;
+	uint8_t		framingflag;
+};
 #pragma pack()
 
 enum id3v2_frames
@@ -413,6 +443,37 @@ string ParseID3v2Tag(MemChunk& mc, size_t start)
 	return ret;
 }
 
+string ParseVorbisComment(MemChunk& mc, size_t start)
+{
+	string ret;
+	const char * data = (const char *) mc.getData();
+	size_t end = mc.getSize();
+
+	if (start + 10 > end)
+		return ret + "\nInvalid Vorbis comment segment (A)\n";
+	size_t strlen = READ_L32(mc, start);
+	if (start + 10 + strlen > end)
+		return ret + "\nInvalid Vorbis comment segment (B)\n";
+
+	string vendor = string::FromUTF8(data + start + 4, strlen);
+
+	size_t numcomments = READ_L32(mc, start + 4 + strlen);
+	size_t s = start + 8 + strlen;
+
+	for (size_t i = 0; i < numcomments && s + 6 < end; ++i)
+	{
+		strlen = READ_L32(mc, s);
+		if (s + strlen + 4 > end)
+			return ret + "\nInvalid Vorbis comment segment (C)\n";
+		ret += string::FromUTF8(data + s + 4, strlen);
+		ret += "\n";
+		s += 4 + strlen;
+	}
+	ret += S_FMT("\nVendor string: %s\n", vendor);
+
+	return ret;
+}
+
 string Audio::getID3Tag(MemChunk& mc)
 {
 	string ret;
@@ -470,7 +531,68 @@ string Audio::getID3Tag(MemChunk& mc)
 	return ret;
 }
 
-string Audio::getVorbisTag(MemChunk& mc)
+string Audio::getOggComments(MemChunk& mc)
 {
-	return "";
+	oggpageheader_t ogg;
+	vorbisheader_t vorb;
+	size_t pagestart = 0;
+	size_t end = mc.getSize();
+	string ret = "";
+
+	while (pagestart + 28 < end)
+	{
+		mc.read(&ogg, 27, pagestart);
+		size_t pagesize = 27;
+
+		for (int i = 0; i < ogg.segments && pagestart + 27 + i < end; ++i)
+		{
+			size_t segsize = mc[pagestart + 27 + i];
+
+			if (segsize > 16 && ogg.pagenum < 3)
+			{
+				size_t datastart = pagestart + pagesize + ogg.segments;
+				// Look if we have a vorbis comment header in that segment
+				mc.read(&vorb, 7, datastart);
+				if (vorb.packettype == 3 && vorb.tag[0] == 'v' && vorb.tag[1] == 'o' &&
+					vorb.tag[2] == 'r' && vorb.tag[3] == 'b' && vorb.tag[4] == 'i' && vorb.tag[5] == 's')
+				{
+					ret += ParseVorbisComment(mc, datastart + 7);
+
+					// There's only one vorbis comment header per vorbis stream, so get out
+					pagestart = end;
+					break;
+				}
+			}
+			pagesize += segsize;
+		}
+		pagesize += ogg.segments;
+		pagestart += pagesize;
+	}
+
+	return ret;
+}
+
+string Audio::getFlacComments(MemChunk& mc)
+{
+	string ret = "";
+	// FLAC files begin with identifier "fLaC"; skip them
+	size_t s = 4;
+	// FLAC metadata blocks have a 4-byte header
+	while (s + 4 < mc.getSize())
+	{
+		// Last three bytes are big-endian value for size of metadata
+		size_t blocksize = READ_B24(mc, s+1);
+
+		// First byte contains block type and "last block" flag (128)
+		// Type 4 is the VORBIS_COMMENT type
+		if ((mc[s] & 0x7F) == 4)
+			ret += ParseVorbisComment(mc, s+4);
+
+		// If this was the last block, no need to keep processing
+		if (mc[s] & 0x80)
+			break;
+		// Otherwise, keep on trucking to next block
+		s+=4+blocksize;
+	}
+	return ret;
 }

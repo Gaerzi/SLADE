@@ -669,9 +669,10 @@ bool AudioEntryPanel::updateInfo()
 		}
 		else if (entry->getType() == EntryType::getType("snd_mp3"))
 			info += Audio::getID3Tag(mc);
-		else if (entry->getType() == EntryType::getType("snd_ogg")
-				|| entry->getType() == EntryType::getType("snd_flac"))
-			info += Audio::getVorbisTag(mc);
+		else if (entry->getType() == EntryType::getType("snd_ogg"))
+			info += Audio::getOggComments(mc);
+		else if (entry->getType() == EntryType::getType("snd_flac"))
+			info += Audio::getFlacComments(mc);
 		break;
 	case AUTYPE_MOD:
 		break;
