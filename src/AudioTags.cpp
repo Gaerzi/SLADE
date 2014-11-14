@@ -82,6 +82,31 @@ struct vorbisid_t
 	uint32_t	blocksize1;
 	uint8_t		framingflag;
 };
+struct itheader_t
+{
+	uint32_t	id;				// "IMPM"
+	char		songname[26];
+	uint16_t	reserved1;		// 0x1004
+	uint16_t	ordnum;
+	uint16_t	insnum;
+	uint16_t	smpnum;
+	uint16_t	patnum;
+	uint16_t	cwtv;
+	uint16_t	cmwt;
+	uint16_t	flags;
+	uint16_t	special;
+	uint8_t		globalvol;
+	uint8_t		mv;
+	uint8_t		speed;
+	uint8_t		tempo;
+	uint8_t		sep;
+	uint8_t		zero;
+	uint16_t	msglength;
+	uint32_t	msgoffset;
+	uint32_t	reserved2;
+	uint8_t		chnpan[64];
+	uint8_t		chnvol[64];
+};
 #pragma pack()
 
 enum id3v2_frames
@@ -595,4 +620,58 @@ string Audio::getFlacComments(MemChunk& mc)
 		s+=4+blocksize;
 	}
 	return ret;
+}
+
+string Audio::getITComments(MemChunk& mc)
+{
+	const char* data = (const char*)mc.getData();
+	const itheader_t* head = (const itheader_t*) data;
+	size_t s = sizeof(itheader_t);
+
+	// Get song name
+	string ret = S_FMT("%s\n", string::From8BitData(head->songname, 26));
+
+	// Get song comment, if any
+	if ((wxUINT16_SWAP_ON_BE(head->special) & 1) && (wxUINT16_SWAP_ON_BE(head->msglength) > 0))
+		ret += S_FMT("%s\n", string::From8BitData(data + wxUINT16_SWAP_ON_BE(head->msgoffset), wxUINT16_SWAP_ON_BE(head->msglength)));
+
+	// Get instrument comments
+	size_t offset = s + wxUINT16_SWAP_ON_BE(head->ordnum);
+	if (head->insnum)
+		ret += S_FMT("\n%d instruments:\n", wxUINT16_SWAP_ON_BE(head->insnum));
+	for (size_t i = 0; i < wxUINT16_SWAP_ON_BE(head->insnum); ++i)
+	{
+		size_t ofs = READ_L32(data, (offset + (i<<2)));
+		if (ofs > offset && ofs + 60 < mc.getSize() && data[ofs] == 'I' && data[ofs+1] == 'M' && data[ofs+2] == 'P' && data[ofs+3] == 'I')
+			ret += S_FMT("%i: %s - %s\n", i, string::From8BitData(data+ofs+4, 12), string::From8BitData(data+ofs+32, 26));
+	}
+	
+	// Get sample comments
+	offset += wxUINT16_SWAP_ON_BE(head->insnum)<<2;
+	if (head->smpnum)
+		ret += S_FMT("\n%d samples:\n", wxUINT16_SWAP_ON_BE(head->smpnum));
+	for (size_t i = 0; i < wxUINT16_SWAP_ON_BE(head->smpnum); ++i)
+	{
+		size_t pos = offset + (i<<2);
+		size_t ofs = READ_L32(mc, pos);
+		if (ofs > offset && ofs + 60 < mc.getSize() && data[ofs] == 'I' && data[ofs+1] == 'M' && data[ofs+2] == 'P' && data[ofs+3] == 'S')
+			ret += S_FMT("%i: %s - %s\n", i, string::From8BitData(data+ofs+4, 12), string::From8BitData(data+ofs+20, 26));
+	}
+
+	return ret;
+}
+
+string Audio::getModComments(MemChunk& mc)
+{
+	return "";
+}
+
+string Audio::getS3MComments(MemChunk& mc)
+{
+	return "";
+}
+
+string Audio::getXMComments(MemChunk& mc)
+{
+	return "";
 }

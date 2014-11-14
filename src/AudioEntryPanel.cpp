@@ -665,7 +665,7 @@ bool AudioEntryPanel::updateInfo()
 		else if (entry->getType() == EntryType::getType("snd_speaker"))
 		{
 			size_t samples = READ_L16(mc, 2);
-			info += S_FMT("%d samples");
+			info += S_FMT("%d samples", samples);
 		}
 		else if (entry->getType() == EntryType::getType("snd_mp3"))
 			info += Audio::getID3Tag(mc);
@@ -675,6 +675,14 @@ bool AudioEntryPanel::updateInfo()
 			info += Audio::getFlacComments(mc);
 		break;
 	case AUTYPE_MOD:
+		if (entry->getType() == EntryType::getType("mod_it"))
+			info += Audio::getITComments(mc);
+		else if (entry->getType() == EntryType::getType("mod_mod"))
+			info += Audio::getModComments(mc);
+		else if (entry->getType() == EntryType::getType("mod_s3m"))
+			info += Audio::getS3MComments(mc);
+		else if (entry->getType() == EntryType::getType("mod_xm"))
+			info += Audio::getXMComments(mc);
 		break;
 	case AUTYPE_MIDI:
 		info += theMIDIPlayer->getInfo();

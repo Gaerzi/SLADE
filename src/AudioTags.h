@@ -8,6 +8,10 @@ namespace Audio
 	string		getID3Tag(MemChunk& mc);
 	string		getOggComments(MemChunk& mc);
 	string		getFlacComments(MemChunk& mc);
+	string		getITComments(MemChunk& mc);
+	string		getModComments(MemChunk& mc);
+	string		getS3MComments(MemChunk& mc);
+	string		getXMComments(MemChunk& mc);
 }
 
 #endif // __AUDIOTAGS_H__
