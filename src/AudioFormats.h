@@ -11,10 +11,10 @@ size_t checkForTags(MemChunk& mc)
 	// Check for empty wasted space at the beginning, since it's apparently
 	// quite popular in MP3s to start with a useless blank frame.
 	size_t s = 0;
+	// Completely arbitrary limit to how long to seek for data.
+	size_t limit = MIN(1200, mc.getSize()/16);
 	if (mc[0] == 0)
 	{
-		// Completely arbitrary limit to how long to seek for data.
-		size_t limit = MIN(1200, mc.getSize()/16);
 		while ((s < limit) && (mc[s] == 0))
 			++s;
 	}
@@ -35,13 +35,13 @@ size_t checkForTags(MemChunk& mc)
 			// Needs to be at least that big
 			if (mc.getSize() >= size + 4)
 				s += size;
-			// Found a stack of MP3 where there always was exactly 626 bytes between the
-			// computed offset value and the real start of the frame. What does it mean?
-			// My guess would be there's a tool out there that outputs wrong synchsafe ints.
-			if ((mc.getSize() > s + 628) && (mc[s] == 0) && (mc[s+626] == 0xFF) && (mc[s+627] == 0xFB))
-				s += 626;
 		}
-		return s;
+		// Blank frame after ID3 tag, because MP3 is awful.
+		while (mc[s] == 0 && s < limit)
+			++s;
+		// Sometimes, the frame start is off by one for some reason.
+		if ((s + 4 < limit) && (mc[s] != 0xFF) && (mc[s+1] == 0xFF))
+			++s;
 	}
 	// It's also possible to get an ID3v1 (or v1.1) tag.
 	// Though normally they're at the end of the file.

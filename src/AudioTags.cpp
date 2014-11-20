@@ -576,6 +576,11 @@ string Audio::getOggComments(MemChunk& mc)
 			if (segsize > 16 && ogg.pagenum < 3)
 			{
 				size_t datastart = pagestart + pagesize + ogg.segments;
+
+				// Stop right now in case of problem
+				if (datastart + 7 >= end)
+					return ret;
+
 				// Look if we have a vorbis comment header in that segment
 				mc.read(&vorb, 7, datastart);
 				if (vorb.packettype == 3 && vorb.tag[0] == 'v' && vorb.tag[1] == 'o' &&
