@@ -1578,6 +1578,10 @@
 							>
 						</File>
 						<File
+							RelativePath=".\dist\res\config\games\hacx.cfg"
+							>
+						</File>
+						<File
 							RelativePath=".\dist\res\config\games\heretic.cfg"
 							>
 						</File>
@@ -1686,6 +1690,10 @@
 							</File>
 							<File
 								RelativePath=".\dist\res\config\games\include\things_doom64.cfg"
+								>
+							</File>
+							<File
+								RelativePath=".\dist\res\config\games\include\things_hacx.cfg"
 								>
 							</File>
 							<File
@@ -1806,6 +1814,10 @@
 							</File>
 							<File
 								RelativePath=".\dist\res\config\ports\include\things_musinfo.cfg"
+								>
+							</File>
+							<File
+								RelativePath=".\dist\res\config\ports\include\things_stealthmonsters.cfg"
 								>
 							</File>
 							<File
