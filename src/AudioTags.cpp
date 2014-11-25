@@ -91,21 +91,27 @@ struct itheader_t
 	uint16_t	insnum;
 	uint16_t	smpnum;
 	uint16_t	patnum;
-	uint16_t	cwtv;
-	uint16_t	cmwt;
+	uint32_t	dontcare;
 	uint16_t	flags;
 	uint16_t	special;
-	uint8_t		globalvol;
-	uint8_t		mv;
-	uint8_t		speed;
-	uint8_t		tempo;
-	uint8_t		sep;
-	uint8_t		zero;
+	uint16_t	dontcare2[3];
 	uint16_t	msglength;
 	uint32_t	msgoffset;
-	uint32_t	reserved2;
-	uint8_t		chnpan[64];
-	uint8_t		chnvol[64];
+	uint32_t	dontcare3[33];
+};
+struct xmheader_t
+{
+	char		id[17];			// "Extended Module: " or "Extended module: "
+	char		songname[20];	// song name
+	uint8_t		reserved;		// 0x1a
+	char		tracker[20];	// tracker program name
+	uint16_t	version;		// either 0x0401 or 0x0301
+	uint32_t	headersize;		// not counting the first 60 bytes
+	uint32_t	dontcare;
+	uint16_t	chnnum;
+	uint16_t	patnum;
+	uint16_t	insnum;
+	// more after, but we don't care about them here
 };
 #pragma pack()
 
@@ -638,7 +644,11 @@ string Audio::getITComments(MemChunk& mc)
 
 	// Get song comment, if any
 	if ((wxUINT16_SWAP_ON_BE(head->special) & 1) && (wxUINT16_SWAP_ON_BE(head->msglength) > 0))
-		ret += S_FMT("%s\n", string::From8BitData(data + wxUINT16_SWAP_ON_BE(head->msgoffset), wxUINT16_SWAP_ON_BE(head->msglength)));
+	{
+		string comment = string::From8BitData(data + wxUINT16_SWAP_ON_BE(head->msgoffset), wxUINT16_SWAP_ON_BE(head->msglength));
+		if (comment.length())
+			ret += S_FMT("%s\n", comment);
+	}
 
 	// Get instrument comments
 	size_t offset = s + wxUINT16_SWAP_ON_BE(head->ordnum);
@@ -648,7 +658,18 @@ string Audio::getITComments(MemChunk& mc)
 	{
 		size_t ofs = READ_L32(data, (offset + (i<<2)));
 		if (ofs > offset && ofs + 60 < mc.getSize() && data[ofs] == 'I' && data[ofs+1] == 'M' && data[ofs+2] == 'P' && data[ofs+3] == 'I')
-			ret += S_FMT("%i: %s - %s\n", i, string::From8BitData(data+ofs+4, 12), string::From8BitData(data+ofs+32, 26));
+		{
+			string instrument = string::From8BitData(data+ofs+4, 12);
+			instrument.Trim(); instrument = S_FMT("%s", instrument);
+			string comment = string::From8BitData(data+ofs+32, 26);
+			comment.Trim(); comment = S_FMT("%s", comment);
+			if (instrument.length() && comment.length())
+				ret += S_FMT("%i: %s - %s\n", i, instrument, comment);
+			else if (instrument.length())
+				ret += S_FMT("%i: %s\n", i, instrument);
+			else if (comment.length())
+				ret += S_FMT("%i - %s\n", i, comment);
+		}
 	}
 	
 	// Get sample comments
@@ -660,7 +681,18 @@ string Audio::getITComments(MemChunk& mc)
 		size_t pos = offset + (i<<2);
 		size_t ofs = READ_L32(mc, pos);
 		if (ofs > offset && ofs + 60 < mc.getSize() && data[ofs] == 'I' && data[ofs+1] == 'M' && data[ofs+2] == 'P' && data[ofs+3] == 'S')
-			ret += S_FMT("%i: %s - %s\n", i, string::From8BitData(data+ofs+4, 12), string::From8BitData(data+ofs+20, 26));
+		{
+			string sample = string::From8BitData(data+ofs+4, 12);
+			sample.Trim(); sample = S_FMT("%s", sample);
+			string comment = string::From8BitData(data+ofs+20, 26);
+			comment.Trim(); comment = S_FMT("%s", comment);
+			if (sample.length() && comment.length())
+				ret += S_FMT("%i: %s - %s\n", i, sample, comment);
+			else if (sample.length())
+				ret += S_FMT("%i: %s\n", i, sample);
+			else if (comment.length())
+				ret += S_FMT("%i - %s\n", i, comment);
+		}
 	}
 
 	return ret;
@@ -678,5 +710,71 @@ string Audio::getS3MComments(MemChunk& mc)
 
 string Audio::getXMComments(MemChunk& mc)
 {
-	return "";
+	const char* data = (const char*)mc.getData();
+	const xmheader_t* head = (const xmheader_t*) data;
+	size_t s = 60 + wxUINT32_SWAP_ON_BE(head->headersize);
+
+	// Get song name
+	string ret = S_FMT("%s\n", string::From8BitData(head->songname, 20));
+
+	// Get tracker name
+	ret += S_FMT("Tracked with %s\n", string::From8BitData(head->tracker, 20));
+
+	// Skip over patterns
+	if (head->patnum)
+		ret += S_FMT("\n%d patterns\n", wxUINT16_SWAP_ON_BE(head->patnum));
+	for (size_t i = 0; i < wxUINT16_SWAP_ON_BE(head->patnum); ++i)
+	{
+		if (s + 9 < mc.getSize())
+		{
+			size_t patsize = READ_L32(mc, s) + READ_L16(mc, s+7);
+			s+=patsize;
+		}
+		else return ret;
+	}
+
+	// Get instrument comments
+	if (head->insnum)
+		ret += S_FMT("\n%d instruments:\n", wxUINT16_SWAP_ON_BE(head->insnum));
+	for (size_t i = 0; i < wxUINT16_SWAP_ON_BE(head->insnum); ++i)
+	{
+		if (s + 29 < mc.getSize())
+		{
+			size_t instsize = READ_L32(mc, s);
+			if (instsize < 33)
+				return ret;
+			// To keep only valid strings, we trim whitespace and then print the string into itself.
+			// The second step gets rid of strings full of invalid characters where length() does not
+			// report the actual printable length correctly.
+			string comment = string::From8BitData(data+s+4, 22);
+			comment.Trim(); comment = S_FMT("%s", comment);
+			if (comment.length())
+				ret += S_FMT("%i: %s\n", i, comment);
+			size_t samples = READ_L16(mc, s+27);
+
+			if (samples > 0 && s + instsize < mc.getSize())
+			{
+				size_t shsz = READ_L32(mc, s+29);
+				if (shsz < 40)
+					return ret;
+				s += instsize;
+				size_t samplesize = 0;
+				for (size_t j = 0; j < samples && s + shsz < mc.getSize(); ++j)
+				{
+					size_t smsz = READ_L32(mc, s);
+					comment = string::From8BitData(data+s+18, 22);
+					comment.Trim(); comment = S_FMT("%s", comment);
+					if (comment.length())
+						ret += S_FMT("%i-%i: %s\n", i, j, comment);
+					s += shsz;
+					samplesize += smsz;
+				}
+				s += samplesize;
+			}
+			else s+=instsize;
+		}
+		else return ret;
+	}
+
+	return ret;
 }

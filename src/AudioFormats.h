@@ -222,7 +222,9 @@ public:
 			char temp[18] = "";
 			memcpy(temp, mc.getData(), 18);
 			temp[17] = 0;
-			if (!S_FMT("%s", temp).CmpNoCase("Extended module: "))
+			if (temp[9] == 'M')
+				temp[9] = 'm';
+			if (!S_FMT("%s", temp).Cmp("Extended module: "))
 			{
 				if (mc[37] == 0x1a)
 				{
