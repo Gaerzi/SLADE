@@ -586,7 +586,7 @@ void MainApp::initActions()
 	new SAction("ppal_colormap", "Generate Colormaps", "e_colormap", "Generate colormap lump from the first palette");
 
 	// MapEntryPanel
-	new SAction("pmap_open_text", "Edit Level Script", "e_text", "Open the map header as text (to edit fragglescript, etc.)");
+	new SAction("pmap_open_text", "Edit Level Header Script", "e_text", "Open the map header as text (to edit fragglescript, etc.)");
 
 	// Map Editor Window
 	new SAction("mapw_save", "&Save Map Changes", "t_save", "Save any changes to the current map", "Ctrl+S");
