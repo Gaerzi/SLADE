@@ -726,7 +726,27 @@ string Audio::getITComments(MemChunk& mc)
 
 string Audio::getModComments(MemChunk& mc)
 {
-	return "";
+	const char* data = (const char*)mc.getData();
+	size_t s = 20;
+
+	// Get song name
+	string ret = S_FMT("%s\n", string::From8BitData(data, 20));
+
+	// Get instrument/sample comments
+	// We only recognize mods that have their magic identifier at offset 1080 (31 samples),
+	// so no need to bother with mods that only have 15 samples (magic at offset 600).
+	ret += "\n31 samples:\n";
+	for (size_t i = 0; i < 31; ++i)
+	{
+		string comment = string::From8BitData(data + s, 22);
+		comment.Trim(); comment = S_FMT("%s", comment);
+		if (comment.length())
+			ret += S_FMT("%i - %s\n", i, comment);
+
+		// Move to next offset
+		s += 30;
+	}
+	return ret;
 }
 
 string Audio::getS3MComments(MemChunk& mc)
@@ -748,9 +768,9 @@ string Audio::getS3MComments(MemChunk& mc)
 		if (t + 80 > mc.getSize())
 			return ret;
 		const s3msample_t* sample = (const s3msample_t*) (data+t);
-		string dosname = string::FromAscii(sample->dosname, 12);
+		string dosname = string::From8BitData(sample->dosname, 12);
 		dosname.Trim(); dosname = S_FMT("%s", dosname);
-		string comment = string::FromAscii(sample->comment, 28);
+		string comment = string::From8BitData(sample->comment, 28);
 		comment.Trim(); comment = S_FMT("%s", comment);
 		if (dosname.length() && comment.length())
 			ret += S_FMT("%i: %s - %s\n", i, dosname, comment);
