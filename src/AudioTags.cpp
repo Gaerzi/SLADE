@@ -99,6 +99,28 @@ struct itheader_t
 	uint32_t	msgoffset;
 	uint32_t	dontcare3[33];
 };
+struct s3mheader_t
+{
+	char		songname[28];
+	uint32_t	dontcare;
+	uint16_t	ordnum;
+	uint16_t	insnum;
+	uint16_t	patnum;
+	uint32_t	dontcare2;
+	uint16_t	version;
+	uint32_t	scrm;		// "SCRM" = 0x4D524353
+	uint16_t	dontcare3[7];
+	uint16_t	special;
+};
+struct s3msample_t
+{
+	uint8_t		type;
+	char		dosname[12];
+	uint8_t		dontcare[3];
+	uint32_t	dontcare2[8];
+	char		comment[28];
+	uint32_t	scr;	// either "SCRI" or "SCRS"
+};
 struct xmheader_t
 {
 	char		id[17];			// "Extended Module: " or "Extended module: "
@@ -645,7 +667,11 @@ string Audio::getITComments(MemChunk& mc)
 	// Get song comment, if any
 	if ((wxUINT16_SWAP_ON_BE(head->special) & 1) && (wxUINT16_SWAP_ON_BE(head->msglength) > 0))
 	{
+		// To keep only valid strings, we trim whitespace and then print the string into itself.
+		// The second step gets rid of strings full of invalid characters where length() does not
+		// report the actual printable length correctly.
 		string comment = string::From8BitData(data + wxUINT16_SWAP_ON_BE(head->msgoffset), wxUINT16_SWAP_ON_BE(head->msglength));
+		comment.Trim(); comment = S_FMT("%s", comment);
 		if (comment.length())
 			ret += S_FMT("%s\n", comment);
 	}
@@ -705,7 +731,35 @@ string Audio::getModComments(MemChunk& mc)
 
 string Audio::getS3MComments(MemChunk& mc)
 {
-	return "";
+	const char* data = (const char*)mc.getData();
+	const s3mheader_t* head = (const s3mheader_t*) data;
+	size_t s = 96;
+
+	// Get song name
+	string ret = S_FMT("%s\n", string::From8BitData(head->songname, 28));
+
+	// Get instrument/sample comments
+	if (head->insnum)
+		ret += S_FMT("\n%d instruments and samples:\n", wxUINT16_SWAP_ON_BE(head->insnum));
+	s += wxUINT16_SWAP_ON_BE(head->ordnum);
+	for (size_t i = 0; i < wxUINT16_SWAP_ON_BE(head->insnum); ++i)
+	{
+		size_t t = (READ_L16(mc, (s+2*i)))<<4;
+		if (t + 80 > mc.getSize())
+			return ret;
+		const s3msample_t* sample = (const s3msample_t*) (data+t);
+		string dosname = string::FromAscii(sample->dosname, 12);
+		dosname.Trim(); dosname = S_FMT("%s", dosname);
+		string comment = string::FromAscii(sample->comment, 28);
+		comment.Trim(); comment = S_FMT("%s", comment);
+		if (dosname.length() && comment.length())
+			ret += S_FMT("%i: %s - %s\n", i, dosname, comment);
+		else if (dosname.length())
+			ret += S_FMT("%i: %s\n", i, dosname);
+		else if (comment.length())
+			ret += S_FMT("%i - %s\n", i, comment);
+	}
+	return ret;
 }
 
 string Audio::getXMComments(MemChunk& mc)
