@@ -135,6 +135,26 @@ struct xmheader_t
 	uint16_t	insnum;
 	// more after, but we don't care about them here
 };
+struct wav_chunk_t
+{
+	char id[4];
+	uint32_t size;
+};
+
+struct wav_fmtchunk_t
+{
+	wav_chunk_t header;
+	uint16_t tag;
+	uint16_t channels;
+	uint32_t samplerate;
+	uint32_t datarate;
+	uint16_t blocksize;
+	uint16_t bps;
+	uint16_t extsize;
+	uint16_t vbps;
+	uint32_t channelmask;
+	uint32_t guid[4];
+};
 #pragma pack()
 
 enum id3v2_frames
@@ -220,6 +240,15 @@ static const char * const id3v1_genres[] =
 	"World Music", "Neoclassical", "Audiobook", "Audio Theatre",		// 181-184
 	"Neue Deutsche Welle", "Podcast", "Indie Rock", "G-Funk",			// 185-188
 	"Dubstep", "Garage Rock", "Psybient"								// 188-191
+};
+static const char * const speaker_pos[] =
+{
+	"Front Left", "Front Right", "Front Center",
+	"Low Frequency", "Back Left", "Back Right",
+	"Front Left of Center", "Front Right of Center",
+	"Back Center", "Side Left", "Side Right", "Top Center",
+	"Top Front Left", "Top Front Center", "Top Front Right",
+	"Top Back Left", "Top Back Center", "Top Back Right",
 };
 
 string BuildID3v2GenreString(string content)
@@ -850,5 +879,222 @@ string Audio::getXMComments(MemChunk& mc)
 		else return ret;
 	}
 
+	return ret;
+}
+
+string Audio::getWavInfo(MemChunk& mc)
+{
+	const char* data = (const char*)mc.getData();
+	const uint8_t* udata = (const uint8_t*)data;
+	const wav_chunk_t* head = (const wav_chunk_t*)data;
+	const wav_chunk_t* temp = NULL;
+	const wav_chunk_t* wdat = NULL;
+	const wav_chunk_t* fact = NULL;
+	const wav_fmtchunk_t* fmt = NULL;
+	size_t s = 12;
+
+	//string chunksfound = "Chunks found:\n";
+
+	// Find data chunks
+	while (s + 8 < mc.getSize())
+	{
+		temp = (const wav_chunk_t*) (data + s);
+		//chunksfound += S_FMT("%s @ %d\n", string::From8BitData(temp->id, 4), s);
+		
+		if (temp->id[0] == 'f' && temp->id[1] == 'm' && temp->id[2] == 't' && temp->id[3] == ' ')
+			fmt = (const wav_fmtchunk_t*) temp;
+		else if (temp->id[0] == 'd' && temp->id[1] == 'a' && temp->id[2] == 't' && temp->id[3] == 'a')
+			wdat = temp;
+		else if (temp->id[0] == 'f' && temp->id[1] == 'a' && temp->id[2] == 'c' && temp->id[3] == 't')
+			fact = temp;
+		size_t offset = 8 + wxUINT32_SWAP_ON_BE(temp->size);
+		if (offset % 2)
+			++offset;
+		s += offset;
+	}
+
+	if (wdat == NULL || fmt == NULL)
+		return S_FMT("Invalid RIFF-WAVE file, %s", (fmt == NULL) ? (wdat == NULL) ? "no format or data" : "no format" : "no data");
+
+	string format = "Format: ";
+	size_t tag = wxUINT16_SWAP_ON_BE(fmt->tag);
+	size_t formnum = tag;
+	if (formnum == 65534)
+	{
+		format = "Format: Extensible - ";
+		formnum = wxUINT32_SWAP_ON_BE(fmt->guid[0]);
+	}
+	switch (formnum)
+	{
+	case 1:		format += S_FMT("PCM"); 									break;
+	case 2:		format += S_FMT("Microsoft ADPCM");							break;
+	case 3:		format += S_FMT("IEEE754");									break;
+	case 6:		format += S_FMT("ITU G.711 a-Law");							break;
+	case 7:		format += wxString::FromUTF8("ITU G.711 \xCE\xBC-Law");		break;
+	case 17:	format += S_FMT("IMA ADPCM");								break;
+	case 20:	format += S_FMT("ITU G.723 ADPCM");							break;
+	case 49:	format += S_FMT("GSM 6.10");								break;
+	case 64:	format += S_FMT("ITU G.721 ADPCM");							break;
+	default:	format += S_FMT("Unknown (%u)", fmt->tag);					break;
+	}
+	string ret = "Mono";
+	size_t channels = wxUINT16_SWAP_ON_BE(fmt->channels);
+	if (channels == 2)
+		ret = "Stereo";
+	else if (channels > 2)
+		ret = S_FMT("%u channels", fmt->channels);
+	size_t smplsize = fmt->blocksize;
+	size_t datasize = wdat->size;
+	size_t samples = datasize / (smplsize > 0 ? smplsize : 1);
+	if (fact && wxUINT32_SWAP_ON_BE(fact->size) >= 4 && tag != 1)
+	{
+		size_t offset = (const uint8_t*)fact - udata + 8;
+		samples = READ_L32(udata, offset);
+	}
+	size_t bps = wxUINT16_SWAP_ON_BE(fmt->bps);
+	if (tag == 65534 && bps != 0)
+		bps = wxUINT16_SWAP_ON_BE(fmt->vbps);
+	if (bps == 0)
+		ret += S_FMT(" variable bit rate");
+	else ret += S_FMT(" %u-bit", bps);
+	size_t samplerate = wxUINT32_SWAP_ON_BE(fmt->samplerate);
+	ret += S_FMT(" sound with %u samples at %u Hz\n%s\n", samples, samplerate, format);
+	if (tag == 65534 && fmt->channelmask > 0)
+	{
+		size_t channelmask = wxUINT32_SWAP_ON_BE(fmt->channelmask);
+		string channelstr = "Channels: ";
+		for (size_t i = 0; i < 18; ++i)
+		{
+			size_t mask = 1<<i;
+			if (channelmask & mask)
+			{
+				channelstr += S_FMT("%s", speaker_pos[i]);
+				channelmask &= ~mask;
+				if (channelmask && i < 17)
+					channelstr += S_FMT(", ");
+			}
+		}
+		ret += S_FMT("%s\n", channelstr);
+	}
+
+	//ret += S_FMT("%s", chunksfound);
+
+	// Parse metadata chunks
+	s = 12;
+	while (s + 8 < mc.getSize())
+	{
+		temp = (const wav_chunk_t*) (data + s);
+		size_t tempsize = wxUINT32_SWAP_ON_BE(temp->size);
+		size_t offset = s + 8;
+		size_t end = offset + tempsize;
+		s = end;
+		if (s % 2)
+			s++;
+
+		// Broadcast extensions (bext chunk)
+		if (temp->id[0] == 'b' && temp->id[1] == 'e' && temp->id[2] == 'x' && temp->id[3] == 't' && tempsize > 602)
+		{
+			string bextstr = "\nBroadcast extensions:\n";
+			if (data[offset])		bextstr += S_FMT("Description: %s\n", string::From8BitData(data + offset, 256));
+			if (data[offset+256])	bextstr += S_FMT("Originator: %s\n", string::From8BitData(data + offset + 256, 32));
+			if (data[offset+288])	bextstr += S_FMT("Reference: %s\n", string::From8BitData(data + offset + 288, 32));
+			if (data[offset+320])	bextstr += S_FMT("Date: %s\n", string::From8BitData(data + offset + 320, 18));
+			if (data[offset+338])	bextstr += S_FMT("Reference: %s\n", string::From8BitData(data + offset + 338, 8));
+			if (data[offset+346])	bextstr += S_FMT("BWFVersion: %s\n", string::From8BitData(data + offset + 346, 256));
+			if (data[offset+602])	bextstr += S_FMT("History: %s\n", string::From8BitData(data + offset + 602, tempsize - 602));
+
+			ret += S_FMT("%s", bextstr);
+		}
+		// RIFF Data Listing
+		if (temp->id[0] == 'L' && temp->id[1] == 'I' && temp->id[2] == 'S' && temp->id[3] == 'T' && tempsize > 4)
+		{
+			// LIST INFO chunk
+			if (mc[offset] == 'I' && mc[offset+1] == 'N' && mc[offset+2] == 'F' && mc[offset+3] == 'O')
+			{
+				string liststr = "\nMetadata listing:\n";
+				offset += 4;
+				while (offset + 8 < end)
+				{
+					const wav_chunk_t* chunk = (const wav_chunk_t*)(data + offset);
+					size_t chsz = wxUINT32_SWAP_ON_BE(chunk->size);
+					string tagname = S_FMT("%s: ", string::From8BitData(chunk->id, 4));
+					offset += 8;
+					if (offset + chsz > end)
+						break;
+					else if (chunk->id[0] == 'I')
+					{
+						if (chunk->id[1] == 'A' && chunk->id[2] == 'R')
+						{
+							if (chunk->id[3] == 'L')			tagname = "Archival Location: ";
+							else if (chunk->id[3] == 'T')		tagname = "Artist: ";
+						}
+						else if (chunk->id[1] == 'C')
+						{
+							if (chunk->id[2] == 'M' && chunk->id[3] == 'S')			tagname = "Commissioned: ";
+							else if (chunk->id[2] == 'M' && chunk->id[3] == 'T')	tagname = "Comment: ";
+							else if (chunk->id[2] == 'O' && chunk->id[3] == 'P')	tagname = "Copyright: ";
+							else if (chunk->id[2] == 'R' && chunk->id[3] == 'D')	tagname = "Date Created: ";
+							else if (chunk->id[2] == 'R' && chunk->id[3] == 'P')	tagname = "Cropped: ";
+						}
+						else if (chunk->id[1] == 'E' && chunk->id[2] == 'N' && chunk->id[3] == 'G')	tagname = "Engineer: ";
+						else if (chunk->id[1] == 'G' && chunk->id[2] == 'N' && chunk->id[3] == 'R')	tagname = "Genre: ";
+						else if (chunk->id[1] == 'K' && chunk->id[2] == 'E' && chunk->id[3] == 'Y')	tagname = "Keywords: ";
+						else if (chunk->id[1] == 'M' && chunk->id[2] == 'E' && chunk->id[3] == 'D')	tagname = "Medium: ";
+						else if (chunk->id[1] == 'N' && chunk->id[2] == 'A' && chunk->id[3] == 'M')	tagname = "Title: ";
+						else if (chunk->id[1] == 'P' && chunk->id[2] == 'R' && chunk->id[3] == 'D')	tagname = "Product: ";
+						else if (chunk->id[1] == 'S' && chunk->id[2] == 'B' && chunk->id[3] == 'J')	tagname = "Subject: ";
+						else if (chunk->id[1] == 'S' && chunk->id[2] == 'F' && chunk->id[3] == 'T')	tagname = "Software: ";
+						else if (chunk->id[1] == 'S' && chunk->id[2] == 'R' && chunk->id[3] == 'C')	tagname = "Source: ";
+						else if (chunk->id[1] == 'S' && chunk->id[2] == 'R' && chunk->id[3] == 'F')	tagname = "Source Form: ";
+						else if (chunk->id[1] == 'T' && chunk->id[2] == 'C' && chunk->id[3] == 'H')	tagname = "Technician: ";
+					}
+					liststr += S_FMT("%s%s\n", tagname, string::From8BitData(data + offset, chsz));
+					offset += chsz;
+					if (offset % 2)
+						offset++;
+				}
+				ret += S_FMT("%s", liststr);
+			}
+			// LIST adtl chunk
+			else if (mc[offset] == 'a' && mc[offset+1] == 'd' && mc[offset+2] == 't' && mc[offset+3] == 'l')
+			{
+				// Not sure how to handle that data yet
+			}
+		}
+		// AFSP (afsp AFsp chunk)
+		else if (temp->id[0] == 'a' && temp->id[1] == 'f' && temp->id[2] == 's' && temp->id[3] == 'p' && tempsize > 5 &&
+			mc[offset] == 'A' && mc[offset+1] == 'F' && mc[offset+2] == 's' && mc[offset+3] == 'p')
+		{
+			char * asciidata = new char[tempsize - 4];
+			memcpy(asciidata, data + offset + 4, tempsize - 4);
+			for (size_t i = 0; i < tempsize - 5; ++i)
+				if (asciidata[i] == 0)
+					asciidata[i] = '\n';
+
+			ret += S_FMT("AFsp metadata:\n%s\n", string::From8BitData(asciidata, tempsize - 4));
+			delete[] asciidata;
+		}
+	}
+#if 0
+	ret += S_FMT("ID: %c%c%c%c\n", fmt->header.id[0], fmt->header.id[1], fmt->header.id[2], fmt->header.id[3]);
+	ret += S_FMT("Size: %d\n", fmt->header.size);
+	ret += S_FMT("Tag: %d\n", fmt->tag);
+	ret += S_FMT("Channels: %d\n", fmt->channels);
+	ret += S_FMT("Sample rate: %d\n", fmt->samplerate);
+	ret += S_FMT("Data rate: %d\n", fmt->datarate);
+	ret += S_FMT("Block size: %d\n", fmt->blocksize);
+	ret += S_FMT("Bits per sample: %d\n", fmt->bps);
+	if (wxUINT32_SWAP_ON_BE(fmt->header.size) > 16)
+	{
+		ret += S_FMT("Extended header size: %d\n", fmt->extsize);
+		if (fmt->extsize >= 22)
+		{
+			ret += S_FMT("Valid bits per sample: %d\n", fmt->vbps);
+			ret += S_FMT("Channel mask: %d\n", fmt->channelmask);
+			ret += S_FMT("GUID: %d %d %d (%08x%08x)\n", fmt->guid[0], fmt->guid[1]&0xFF, fmt->guid[1]>>16, 
+				wxUINT32_SWAP_ON_LE(fmt->guid[2]), wxUINT32_SWAP_ON_LE(fmt->guid[3]));
+		}
+	}
+#endif
 	return ret;
 }

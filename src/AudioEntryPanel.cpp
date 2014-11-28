@@ -667,6 +667,8 @@ bool AudioEntryPanel::updateInfo()
 			size_t samples = READ_L16(mc, 2);
 			info += S_FMT("%d samples", samples);
 		}
+		else if (entry->getType() == EntryType::getType("snd_wav"))
+			info += Audio::getWavInfo(mc);
 		else if (entry->getType() == EntryType::getType("snd_mp3"))
 			info += Audio::getID3Tag(mc);
 		else if (entry->getType() == EntryType::getType("snd_ogg"))
