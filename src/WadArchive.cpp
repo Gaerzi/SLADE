@@ -1163,7 +1163,7 @@ void WadArchive::detectIncludes()
 				string token = tz.getToken();
 				while (token.length())
 				{
-					if (token == tokens[i])
+					if (token.Lower() == tokens[i])
 					{
 						if (i >= 3) // skip '=' or '('
 							tz.getToken();
