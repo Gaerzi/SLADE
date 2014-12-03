@@ -224,36 +224,49 @@ bool Conversions::wavToDoomSnd(MemChunk& in, MemChunk& out)
 		return false;
 	}
 
+	// Find fmt chunk
+	size_t ofs = 12;
+	while (ofs < in.getSize())
+	{
+		if (in[ofs] == 'f' && in[ofs+1] == 'm' && in[ofs+2] == 't' && in[ofs+3] == ' ')
+			break;
+		ofs += 8 + READ_L32(in, (ofs + 4));
+	}
+
 	// Read fmt chunk
+	if (ofs + sizeof(wav_fmtchunk_t) > in.getSize())
+	{
+		Global::error = "Invalid WAV: no 'fmt ' chunk";
+		return false;
+	}
+	in.seek(ofs, SEEK_SET);
 	wav_fmtchunk_t fmtchunk;
 	in.read(&fmtchunk, sizeof(wav_fmtchunk_t));
 
 	// Check fmt chunk values
-	if (fmtchunk.header.id[0] != 'f' || fmtchunk.header.id[1] != 'm' || fmtchunk.header.id[2] != 't' || fmtchunk.header.id[3] != ' ')
+	if (fmtchunk.channels != 1 || fmtchunk.bps != 8 || (fmtchunk.tag != 1 && (fmtchunk.tag == 0xFFFE && READ_L32(in, ofs+32) != 1)))
 	{
-		Global::error = "Invalid WAV";
+		Global::error = "Cannot convert WAV file, only 8-bit monophonic sounds in PCM format can be converted";
 		return false;
 	}
-	if (fmtchunk.channels != 1)
+
+	// Find data chunk
+	ofs += 8 + wxUINT32_SWAP_ON_BE(fmtchunk.header.size);
+	while (ofs < in.getSize())
 	{
-		Global::error = "Cannot convert, must be mono";
-		return false;
-	}
-	if (fmtchunk.bps != 8)
-	{
-		Global::error = "Cannot convert, must be 8bit";
-		return false;
+		if (in[ofs] == 'd' && in[ofs+1] == 'a' && in[ofs+2] == 't' && in[ofs+3] == 'a')
+			break;
+		ofs += 8 + READ_L32(in, (ofs + 4));
 	}
 
 	// Read data
-	in.read(&chunk, 8);
-
-	// Check data
-	if (chunk.id[0] != 'd' || chunk.id[1] != 'a' || chunk.id[2] != 't' || chunk.id[3] != 'a')
+	if (ofs + sizeof(wav_fmtchunk_t) > in.getSize())
 	{
-		Global::error = "Invalid WAV";
+		Global::error = "Invalid WAV: no 'data' chunk";
 		return false;
 	}
+	in.seek(ofs, SEEK_SET);
+	in.read(&chunk, 8);
 
 	uint8_t* data = new uint8_t[chunk.size];
 	uint8_t padding[16];

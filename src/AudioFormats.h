@@ -561,34 +561,56 @@ public:
 // under the "WAVE form wFormatTag IDs" comment.
 // There are dozens upon dozens of them, most of
 // which are not usually seen in practice.
+#define WAVE_FMT_UNK	0x0000
 #define WAVE_FMT_PCM	0x0001
+#define WAVE_FMT_ADPCM	0x0002
+#define WAVE_FMT_ALAW	0x0006
+#define WAVE_FMT_MULAW	0x0007
 #define WAVE_FMT_MP3	0x0055
+#define WAVE_FMT_XTNSBL	0xFFFE
+
 int RiffWavFormat(MemChunk& mc)
 {
 	// Check size
-	if (mc.getSize() > 44)
+	size_t size = mc.getSize();
+	int format = WAVE_FMT_UNK;
+	if (size > 44)
 	{
+
 		// Check for wav header
 		if (mc[0] != 'R' || mc[1] != 'I' || mc[2] != 'F' || mc[3] != 'F' &&
-		        mc[8] != 'W' || mc[9] != 'A' || mc[10] != 'V' || mc[11] != 'E' &&
-		        mc[12] != 'f' || mc[13] != 'm' || mc[14] != 't' || mc[15] != ' ')
+		        mc[8] != 'W' || mc[9] != 'A' || mc[10] != 'V' || mc[11] != 'E')
 			// Not a RIFF-WAV file
-			return -1;
-		int format = READ_L16(mc, 20);
-
-		// Verify existence of fact chunk for non-PCM formats
-		if (format != WAVE_FMT_PCM)
+			return format;
+		// Verify existence of "fmt " and "data" chunks
+		size_t fmts = 0, data = 0;
+		size_t ncoffs = 12; // next chunk offset
+		while (ncoffs + 16 < size)
 		{
-			uint32_t fmtsize = READ_L32(mc, 16);
-			uint32_t ncoffs = 20 + fmtsize; // next chunk offset
-			if (mc.getSize() <= ncoffs + 8)
-				return -1;
-			if (mc[ncoffs + 0] != 'f' || mc[ncoffs + 1] != 'a' || mc[ncoffs + 2] != 'c' || mc[ncoffs + 3] != 't')
-				return -1;
+			if (mc[ncoffs] == 'f' && mc[ncoffs + 1] == 'm' && mc[ncoffs + 2] == 't' && mc[ncoffs + 3] == ' ')
+			{
+				if (fmts) // already found, there can be only one
+					return -1;
+				format = READ_L16(mc, (ncoffs+8));
+				fmts = ncoffs;
+			}
+			else if (mc[ncoffs + 0] == 'd' && mc[ncoffs + 1] == 'a' && mc[ncoffs + 2] == 't' && mc[ncoffs + 3] == 'a')
+			{
+				if (data) // already found, there can be only one
+					return -1;
+				data = ncoffs;
+				// All of them are found, no need to keep looking
+				if (fmts)
+					break;
+			}
+			ncoffs += 8 + READ_L32(mc, (ncoffs + 4));
+			if (ncoffs % 2)
+				ncoffs++;
 		}
-		return format;
+		if (fmts && data)
+			return format;
 	}
-	return -1;
+	return format;
 }
 
 class WAVDataFormat : public EntryDataFormat
@@ -600,12 +622,11 @@ public:
 	int isThisFormat(MemChunk& mc)
 	{
 		int fmt = RiffWavFormat(mc);
-		if (fmt == WAVE_FMT_PCM)
+		if (fmt == WAVE_FMT_UNK || fmt == WAVE_FMT_MP3)
+			return EDF_FALSE;
+		if (fmt <= WAVE_FMT_MULAW || fmt == WAVE_FMT_XTNSBL)
 			return EDF_TRUE;
-		else if (fmt > 0)
-			return EDF_MAYBE;
-
-		return EDF_FALSE;
+		return EDF_MAYBE;
 	}
 };
 
