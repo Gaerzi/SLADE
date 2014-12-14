@@ -363,7 +363,12 @@ bool AudioEntryPanel::openAudio(MemChunk& audio, string filename)
 		audio_type = AUTYPE_SOUND;
 
 		// Enable play controls
+#if (SFML_VERSION_MAJOR == 2 && SFML_VERSION_MINOR < 2)
+		// SFML before 2.2 has a bug where it reports an incorrect value for long sounds, so compute it ourselves then
+		setAudioDuration((sound_buffer->getSampleCount() / sound_buffer->getSampleRate())*(1000/sound_buffer->getChannelCount()));
+#else
 		setAudioDuration(sound_buffer->getDuration().asMilliseconds());
+#endif
 		btn_play->Enable();
 		btn_pause->Enable();
 		btn_stop->Enable();
@@ -378,7 +383,6 @@ bool AudioEntryPanel::openAudio(MemChunk& audio, string filename)
 
 		// Enable play controls
 		setAudioDuration(music.getDuration().asMilliseconds());
-		//wxLogMessage("duration: %dms", music.getDuration().asMilliseconds());
 		btn_play->Enable();
 		btn_stop->Enable();
 
@@ -387,6 +391,7 @@ bool AudioEntryPanel::openAudio(MemChunk& audio, string filename)
 	else
 	{
 		// Couldn't open as sound or music, try the wxMediaCtrl
+		LOG_MESSAGE(3, "opened as media");
 
 		// Dump audio to temp file
 		audio.exportFile(filename);
