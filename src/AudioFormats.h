@@ -372,6 +372,8 @@ public:
 				{
 					// Hack for titlermx.imf
 				}
+				else if (reg == 0 && i > 0)
+					return EDF_FALSE;
 				else if (rega >= 0xA0 && rega <= 0xC0)
 				{
 					if (regc > 8 && reg != 0xBD)
