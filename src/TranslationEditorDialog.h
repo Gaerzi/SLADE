@@ -3,8 +3,8 @@
 #define __TRANSLATION_EDITOR_DIALOG_H__
 
 #include <wx/dialog.h>
-#include <wx/clrpicker.h>
 #include "PaletteCanvas.h"
+#include "ColourBox.h"
 #include "Translation.h"
 #include "GfxCanvas.h"
 
@@ -54,8 +54,8 @@ private:
 
 	// Colour gradient target range
 	wxPanel*			panel_target_gradient;
-	wxColourPickerCtrl*	cp_range_begin;
-	wxColourPickerCtrl*	cp_range_end;
+	ColourBox*			cb_range_begin;
+	ColourBox*			cb_range_end;
 	GradientBox*		gb_gradient;
 
 	// Preview
@@ -87,8 +87,8 @@ public:
 	void	onRBPaletteSelected(wxCommandEvent& e);
 	void	onRBColourSelected(wxCommandEvent& e);
 	void	onRBDesaturateSelected(wxCommandEvent& e);
-	void	onBeginColourChanged(wxColourPickerEvent& e);
-	void	onEndColourChanged(wxColourPickerEvent& e);
+	void	onBeginColourChanged(wxEvent& e);
+	void	onEndColourChanged(wxEvent& e);
 	void	onPalOriginLeftUp(wxMouseEvent& e);
 	void	onPalTargetLeftUp(wxMouseEvent& e);
 	void	onBtnRemove(wxCommandEvent& e);
@@ -115,13 +115,13 @@ private:
 	GfxCanvas*			gfx_preview;
 	ArchiveEntry*		entry;
 	Palette8bit*		palette;
-	wxColourPickerCtrl*	cp_colour;
+	ColourBox*			cb_colour;
 
 public:
 	GfxColouriseDialog(wxWindow* parent, ArchiveEntry* entry, Palette8bit* pal);
 	rgba_t getColour();
 	void setColour(string col);
-	void onColourChanged(wxColourPickerEvent& e);
+	void onColourChanged(wxEvent& e);
 	void onResize(wxSizeEvent& e);
 };
 
@@ -138,7 +138,7 @@ private:
 	GfxCanvas*			gfx_preview;
 	ArchiveEntry*		entry;
 	Palette8bit*		palette;
-	wxColourPickerCtrl*	cp_colour;
+	ColourBox*			cb_colour;
 	wxSlider*			slider_amount;
 	wxStaticText*		label_amount;
 
@@ -147,7 +147,7 @@ public:
 	rgba_t getColour();
 	float getAmount();
 	void setValues(string col, int val);
-	void onColourChanged(wxColourPickerEvent& e);
+	void onColourChanged(wxEvent& e);
 	void onAmountChanged(wxCommandEvent& e);
 	void onResize(wxSizeEvent& e);
 };
