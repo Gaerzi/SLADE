@@ -190,8 +190,8 @@ void ResourceManager::addArchive(Archive* archive)
 	// Go through entries
 	vector<ArchiveEntry*> entries;
 	archive->getEntryTreeAsList(entries);
-	for (unsigned a = 0; a < entries.size(); a++)
-		addEntry(entries[a]);
+	for (unsigned a = entries.size(); a > 1; a--)
+		addEntry(entries[a-1]);
 
 	// Listen to the archive
 	listenTo(archive);
