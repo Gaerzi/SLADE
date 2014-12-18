@@ -395,9 +395,10 @@ void TextureXEditor::saveChanges()
 	// Check for problems
 	checkTextures();
 
-	// Save TEXTUREx entries
+	// Save TEXTUREx entries if they were changed
+	// or if the patch table was modified
 	for (unsigned a = 0; a < texture_editors.size(); a++)
-		if (texture_editors[a]->isModified())
+		if (texture_editors[a]->isModified() || pnames_modified)
 			texture_editors[a]->saveTEXTUREX();
 
 	// Save PNAMES if it exists
