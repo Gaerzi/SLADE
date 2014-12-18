@@ -36,6 +36,7 @@
  * EXTERNAL VARIABLES
  *******************************************************************/
 EXTERN_CVAR(Bool, wad_force_uppercase)
+EXTERN_CVAR(Bool, tex_force_uppercase)
 EXTERN_CVAR(Int, autosave_entry_changes)
 EXTERN_CVAR(Bool, percent_encoding)
 EXTERN_CVAR(Bool, auto_entry_replace)
@@ -64,6 +65,8 @@ EditingPrefsPanel::EditingPrefsPanel(wxWindow* parent) : PrefsPanelBase(parent)
 	// Force uppercase
 	cb_wad_force_uppercase = new wxCheckBox(this, -1, "Force uppercase entry names in Wad Archives");
 	sizer->Add(cb_wad_force_uppercase, 0, wxEXPAND|wxLEFT|wxRIGHT|wxBOTTOM, 4);
+	cb_tex_force_uppercase = new wxCheckBox(this, -1, "Force uppercase composite texture names");
+	sizer->Add(cb_tex_force_uppercase, 0, wxEXPAND|wxLEFT|wxRIGHT|wxBOTTOM, 4);
 
 	// Percent encoding
 	cb_zip_percent_encoding = new wxCheckBox(this, -1, "Use percent encoding if needed outside of Wad Archives");
@@ -103,6 +106,7 @@ EditingPrefsPanel::~EditingPrefsPanel()
 void EditingPrefsPanel::init()
 {
 	cb_wad_force_uppercase->SetValue(wad_force_uppercase);
+	cb_tex_force_uppercase->SetValue(tex_force_uppercase);
 	cb_zip_percent_encoding->SetValue(percent_encoding);
 	cb_auto_entry_replace->SetValue(auto_entry_replace);
 	cb_save_archive_with_map->SetValue(save_archive_with_map);
@@ -116,6 +120,7 @@ void EditingPrefsPanel::init()
 void EditingPrefsPanel::applyPreferences()
 {
 	wad_force_uppercase = cb_wad_force_uppercase->GetValue();
+	tex_force_uppercase = cb_tex_force_uppercase->GetValue();
 	percent_encoding = cb_zip_percent_encoding->GetValue();
 	auto_entry_replace = cb_auto_entry_replace->GetValue();
 	save_archive_with_map = cb_save_archive_with_map->GetValue();

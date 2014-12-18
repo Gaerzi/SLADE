@@ -53,8 +53,11 @@
  * EXTERNAL VARIABLES
  *******************************************************************/
 EXTERN_CVAR(String, dir_last)
-EXTERN_CVAR(Bool, wad_force_uppercase)
 
+/*******************************************************************
+ * VARIABLES
+ *******************************************************************/
+CVAR(Bool, tex_force_uppercase, true, CVAR_SAVE)
 
 /*******************************************************************
  * TEXTUREXLISTVIEW CLASS FUNCTIONS
@@ -441,7 +444,10 @@ void TextureXPanel::newTexture()
 		return;
 
 	// Process name
-	name = name.Upper().Truncate(8);
+	if (tex_force_uppercase) 
+		name.MakeUpper();
+	if (texturex.getFormat() != TXF_TEXTURES)
+		name = name.Truncate(8);
 
 	// Create new texture
 	CTexture* tex = new CTexture();
@@ -880,7 +886,9 @@ void TextureXPanel::renameTexture(bool each)
 		{
 			// Prompt for a new name
 			string new_name = wxGetTextFromUser("Enter new texture name: (* = unchanged)", "Rename", selection[a]->getName());
-			if (wad_force_uppercase) new_name.MakeUpper();
+			if (texturex.getFormat() != TXF_TEXTURES)
+				new_name = new_name.Truncate(8);
+			if (tex_force_uppercase) new_name.MakeUpper();
 
 			// Rename entry (if needed)
 			if (!new_name.IsEmpty() && selection[a]->getName() != new_name)
@@ -903,7 +911,9 @@ void TextureXPanel::renameTexture(bool each)
 
 		// Prompt for a new name
 		string new_name = wxGetTextFromUser("Enter new texture name: (* = unchanged)", "Rename", filter);
-		if (wad_force_uppercase) new_name.MakeUpper();
+		if (texturex.getFormat() != TXF_TEXTURES)
+			new_name = new_name.Truncate(8);
+		if (tex_force_uppercase) new_name.MakeUpper();
 
 		// Apply mass rename to list of names
 		if (!new_name.IsEmpty())
