@@ -262,6 +262,35 @@ public:
 	}
 };
 
+class ILBMDataFormat : public EntryDataFormat
+{
+public:
+	ILBMDataFormat() : EntryDataFormat("img_ilbm") {};
+	~ILBMDataFormat() {}
+
+	int isThisFormat(MemChunk& mc)
+	{
+		// Check size
+		if (mc.getSize() > 48)
+		{
+			// Check for ILBM header, we'll also accept ACBM and PBM files, hoping FreeImage handles them all.
+			// There's more info and documentation on these by Sander van der Burg at https://github.com/svanderburg/libilbm
+			if ((mc[0] == 'F' && mc[1] == 'O' && mc[2] == 'R' && mc[3] == 'M') && (
+				(mc[8] == 'I' && mc[9] == 'L' && mc[10] == 'B' && mc[11] == 'M') ||	// Interleaved Bitmap
+				(mc[8] == 'A' && mc[9] == 'C' && mc[10] == 'B' && mc[11] == 'M') ||	// Amiga Continuous Bitmap
+				(mc[8] == 'P' && mc[9] == 'B' && mc[10] == 'M' && mc[11] == ' ')))	// Deluxe Paint PC Bitmap
+			{
+				size_t chunksize = 8 + READ_B32(mc, 4);
+				if (chunksize != mc.getSize())
+					return EDF_FALSE;
+				return EDF_TRUE;
+			}
+		}
+
+		return EDF_FALSE;
+	}
+};
+
 class DoomGfxDataFormat : public EntryDataFormat
 {
 public:

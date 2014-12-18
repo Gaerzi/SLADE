@@ -199,6 +199,7 @@ void EntryDataFormat::initBuiltinFormats()
 	new TGADataFormat();
 	new TIFFDataFormat();
 	new JPEGDataFormat();
+	new ILBMDataFormat();
 	new DoomGfxDataFormat();
 	new DoomGfxAlphaDataFormat();
 	new DoomGfxBetaDataFormat();

@@ -91,5 +91,15 @@ entry_types
 		extra = image;
 		image_format = "image";
 	}
+	
+	ilbm : gfx_std
+	{
+		name = "Graphic (ILBM)";
+		format = img_ilbm;
+		export_ext = "lbm";
+		editor = gfx;
+		extra = image;
+		image_format = "image";
+	}
 
 }
