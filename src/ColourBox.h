@@ -24,6 +24,7 @@ public:
 	// Events
 	void	onPaint(wxPaintEvent& e);
 	void	onMouseLeftDown(wxMouseEvent& e);
+	void	onMouseMiddleDown(wxMouseEvent& e);
 	void	onMouseRightDown(wxMouseEvent& e);
 
 	void	sendChangeEvent();

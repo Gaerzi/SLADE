@@ -37,6 +37,7 @@
 #include "WxStuff.h"
 #include "ColourBox.h"
 #include "PaletteDialog.h"
+#include "MainWindow.h"
 #include <wx/colordlg.h>
 
 
@@ -63,6 +64,7 @@ ColourBox::ColourBox(wxWindow* parent, int id, bool enable_alpha)
 	// Bind events
 	Bind(wxEVT_PAINT, &ColourBox::onPaint, this);
 	Bind(wxEVT_LEFT_DOWN, &ColourBox::onMouseLeftDown, this);
+	Bind(wxEVT_MIDDLE_DOWN, &ColourBox::onMouseMiddleDown, this);
 	Bind(wxEVT_RIGHT_DOWN, &ColourBox::onMouseRightDown, this);
 }
 
@@ -79,6 +81,7 @@ ColourBox::ColourBox(wxWindow* parent, int id, rgba_t col, bool enable_alpha)
 	// Bind events
 	Bind(wxEVT_PAINT, &ColourBox::onPaint, this);
 	Bind(wxEVT_LEFT_DOWN, &ColourBox::onMouseLeftDown, this);
+	Bind(wxEVT_MIDDLE_DOWN, &ColourBox::onMouseMiddleDown, this);
 	Bind(wxEVT_RIGHT_DOWN, &ColourBox::onMouseRightDown, this);
 }
 
@@ -159,6 +162,31 @@ void ColourBox::onMouseLeftDown(wxMouseEvent& e)
 				sendChangeEvent();
 				Refresh();
 			}
+		}
+	}
+}
+
+/* ColourBox::onMouseLeftDown
+ * Called when the colour box is middle clicked. Pops up a palette 
+ * dialog, using the global palette if a palette has not been
+ * given to the colour box
+ *******************************************************************/
+void ColourBox::onMouseMiddleDown(wxMouseEvent& e)
+{
+	Palette8bit *pal = palette;
+	if (!palette)
+	{
+		pal = thePaletteChooser->getSelectedPalette();
+	}
+	PaletteDialog pd(pal);
+	if (pd.ShowModal() == wxID_OK)
+	{
+		rgba_t col = pd.getSelectedColour();
+		if (col.a > 0)
+		{
+			colour = col;
+			sendChangeEvent();
+			Refresh();
 		}
 	}
 }
