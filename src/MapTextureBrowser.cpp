@@ -126,10 +126,7 @@ string MapTexBrowserItem::itemInfo()
 	{
 		sx *= image->getWidth();
 		sy *= image->getHeight();
-		// The +0.5 trick for rounding to nearest does not work for 
-		// values greater than 2^23 or for the predecessor of 0.5.
-		// Hopefully, textures should never be concerned.
-		info += S_FMT(", Scaled to %dx%d", (int)(sx+0.5), (int)(sy+0.5));
+		info += S_FMT(", Scaled to %.5gx%.5g", sx, sy);
 	}
 
 	// Add usage count
