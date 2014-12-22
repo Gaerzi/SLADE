@@ -702,9 +702,12 @@ void MapEditorWindow::buildNodes(Archive* wad)
 		theApp->SetTopWindow(this);
 		wxExecute(S_FMT("\"%s\" %s", builder.path, command), out, wxEXEC_HIDE_CONSOLE);
 		theApp->SetTopWindow(theMainWindow);
-		wxLogMessage("Nodebuilder output:");
-		for (unsigned a = 0; a < out.size(); a++)
-			wxLogMessage(out[a]);
+		string output = "Nodebuilder output:\n";
+		for (unsigned a = 0; a < out.size(); ++a)
+			output += S_FMT("%s\n", out[a]);
+		// Sanitize percent signs to prevent wxLog from trying to interpret them
+		output.Replace("%", "%%", true);
+		wxLogMessage(output);
 
 		// Re-load wad
 		wad->close();
