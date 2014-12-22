@@ -112,6 +112,9 @@ string MapTexBrowserItem::itemInfo()
 	else
 		info += "Unknown size";
 
+	double sx = image->getScaleX(); if (sx == 0) sx = 1;
+	double sy = image->getScaleY(); if (sy == 0) sy = 1;
+
 	// Add type
 	if (type == "texture")
 		info += ", Texture";
@@ -119,8 +122,15 @@ string MapTexBrowserItem::itemInfo()
 		info += ", Flat";
 
 	// Add scaling info
-	if (image->getScaleX() != 1.0 || image->getScaleY() != 1.0)
-		info += ", Scaled";
+	if (sx != 1.0 || sy != 1.0)
+	{
+		sx *= image->getWidth();
+		sy *= image->getHeight();
+		// The +0.5 trick for rounding to nearest does not work for 
+		// values greater than 2^23 or for the predecessor of 0.5.
+		// Hopefully, textures should never be concerned.
+		info += S_FMT(", Scaled to %dx%d", (int)(sx+0.5), (int)(sy+0.5));
+	}
 
 	// Add usage count
 	info += S_FMT(", Used %d times", usage_count);

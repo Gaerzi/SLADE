@@ -1285,13 +1285,13 @@ void MapRenderer3D::updateLine(unsigned index)
 
 		// Setup quad coordinates
 		double top = lowceil + yoff1;
-		double bottom = top - (quad.texture->getHeight() * sy);
+		double bottom = top - (quad.texture->getHeight() * quad.texture->getScaleY() * sy);
 		if ((map->currentFormat() == MAP_DOOM64) || (udmf_zdoom && line->boolProperty("wrapmidtex")))
 			bottom = highfloor;
 		if (lpeg)
 		{
 			bottom = highfloor + yoff1;
-			top = bottom + (quad.texture->getHeight() * sy);
+			top = bottom + (quad.texture->getHeight() * quad.texture->getScaleY() * sy);
 		}
 		if (bottom < highfloor)
 			bottom = highfloor;
@@ -1428,11 +1428,11 @@ void MapRenderer3D::updateLine(unsigned index)
 
 		// Setup quad coordinates
 		double top = lowceil + yoff2;
-		double bottom = top - (quad.texture->getHeight() * sy);
+		double bottom = top - (quad.texture->getHeight() * quad.texture->getScaleY() * sy);
 		if (lpeg)
 		{
 			bottom = highfloor + yoff2;
-			top = bottom + (quad.texture->getHeight() * sy);
+			top = bottom + (quad.texture->getHeight() * quad.texture->getScaleY() * sy);
 		}
 		if (bottom < highfloor)
 			bottom = highfloor;
