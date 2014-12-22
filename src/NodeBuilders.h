@@ -13,6 +13,7 @@ namespace NodeBuilders
 		string			path;
 		string			command;
 		string			exe;
+		string			settings;
 		vector<string>	options;
 		vector<string>	option_desc;
 	};
@@ -20,9 +21,12 @@ namespace NodeBuilders
 	void		init();
 	void		addBuilderPath(string builder, string path);
 	void		saveBuilderPaths(wxFile& file);
+	void		addBuilderSettings(string builder, string settings);
+	void		saveBuilderSettings(wxFile& file);
 	unsigned	nNodeBuilders();
 	builder_t&	getBuilder(string id);
 	builder_t&	getBuilder(unsigned index);
+	bool		glvisCompatible();
 }
 
 #endif//__NODE_BUILDERS_H__

@@ -37,7 +37,7 @@ private:
 	// Singleton instance
 	static MapEditorWindow*		instance;
 
-	void	buildNodes(Archive* wad);
+	void	buildNodes(Archive* wad, string nodebuilder = "");
 	void	lockMapEntries(bool lock = true);
 
 public:

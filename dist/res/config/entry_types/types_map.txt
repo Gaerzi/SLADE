@@ -217,6 +217,18 @@ entry_types
 		icon = "e_map_data";
 		export_ext = "lmp";
 	}
+	
+	// This introduces GL nodes
+	map_gl_header : map_base
+	{
+		name = "Map GL Nodes Header";
+		match_name = "gl_map*", "gl_e?m?";
+		icon = "e_map_data";
+		export_ext = "lmp";
+		category = "Maps";
+		format = text;
+		editor = text;
+	}
 
 	// The following four lumps are used by OpenGL ports (including EDGE, GZDoom, and others)
 	map_gl_vert : map_base
@@ -250,6 +262,16 @@ entry_types
 	{
 		name = "Map GL Nodes";
 		match_name = "gl_nodes";
+		icon = "e_map_data";
+		export_ext = "lmp";
+		category = "Maps";
+	}
+
+	// This is generated empty by glBSP, and used by Vavoom, ZDoomGL, and StrifeVE
+	map_gl_pvs : map_base
+	{
+		name = "Map GL Potentially Visible Set";
+		match_name = "gl_pvs";
 		icon = "e_map_data";
 		export_ext = "lmp";
 		category = "Maps";

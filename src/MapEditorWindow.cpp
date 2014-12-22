@@ -61,9 +61,8 @@
 MapEditorWindow* MapEditorWindow::instance = NULL;
 CVAR(Bool, mew_maximized, true, CVAR_SAVE);
 CVAR(String, nodebuilder_id, "zdbsp", CVAR_SAVE);
-CVAR(String, nodebuilder_options, "", CVAR_SAVE);
 CVAR(Bool, save_archive_with_map, true, CVAR_SAVE);
-
+CVAR(Bool, nodebuilder_use_pvs, false, CVAR_SAVE);
 
 /*******************************************************************
  * EXTERNAL VARIABLES
@@ -649,7 +648,7 @@ void MapEditorWindow::loadMapScripts(Archive::mapdesc_t map)
  * Builds nodes for the maps in [wad]
  *******************************************************************/
 bool nb_warned = false;
-void MapEditorWindow::buildNodes(Archive* wad)
+void MapEditorWindow::buildNodes(Archive* wad, string nodebuilder)
 {
 	NodeBuilders::builder_t builder;
 	string command;
@@ -660,17 +659,10 @@ void MapEditorWindow::buildNodes(Archive* wad)
 	wad->save(filename);
 
 	// Get current nodebuilder
-	builder = NodeBuilders::getBuilder(nodebuilder_id);
+	if (nodebuilder.IsEmpty()) nodebuilder = nodebuilder_id;
+	builder = NodeBuilders::getBuilder(nodebuilder);
 	command = builder.command;
-	options = nodebuilder_options;
-
-	// Switch to ZDBSP if UDMF
-	if (mdesc_current.format == MAP_UDMF && nodebuilder_id != "zdbsp")
-	{
-		wxMessageBox("Nodebuilder switched to ZDBSP for UDMF format", "Save Map", wxICON_INFORMATION);
-		builder = NodeBuilders::getBuilder("zdbsp");
-		command = builder.command;
-	}
+	options = builder.settings;
 
 	// Check for undefined path
 	if (!wxFileExists(builder.path) && !nb_warned)
@@ -698,13 +690,20 @@ void MapEditorWindow::buildNodes(Archive* wad)
 	if (wxFileExists(builder.path))
 	{
 		wxArrayString out;
+		wxArrayString err;
 		wxLogMessage("execute \"%s %s\"", builder.path, command);
 		theApp->SetTopWindow(this);
-		wxExecute(S_FMT("\"%s\" %s", builder.path, command), out, wxEXEC_HIDE_CONSOLE);
+		wxExecute(S_FMT("\"%s\" %s", builder.path, command), out, err, wxEXEC_HIDE_CONSOLE);
 		theApp->SetTopWindow(theMainWindow);
-		string output = "Nodebuilder output:\n";
+		string output = S_FMT("%s %s", builder.name, out.size() ? "output:\n" : "had no output.\n");
 		for (unsigned a = 0; a < out.size(); ++a)
 			output += S_FMT("%s\n", out[a]);
+		if (Global::log_verbosity >= 3 && err.size())
+		{
+			output += S_FMT("%s debug messages:\n", builder.name);
+			for (unsigned a = 0; a < err.size(); ++a)
+				output += S_FMT("%s\n", err[a]);
+		}
 		// Sanitize percent signs to prevent wxLog from trying to interpret them
 		output.Replace("%", "%%", true);
 		wxLogMessage(output);
@@ -769,7 +768,15 @@ WadArchive* MapEditorWindow::writeMap(string name, bool nodes)
 
 	// Build nodes
 	if (nodes)
-		buildNodes(wad);
+	{
+		if (mdesc_current.format == MAP_UDMF)
+			buildNodes(wad, "zdbsp");
+		else 
+			buildNodes(wad);
+
+		if (mdesc_current.format != MAP_UDMF && nodebuilder_use_pvs && NodeBuilders::glvisCompatible())
+			buildNodes(wad, "glvis");
+	}
 
 	// Clear current map data
 	for (unsigned a = 0; a < map_data.size(); a++)

@@ -11,13 +11,14 @@ private:
 	wxButton*		btn_browse_path;
 	wxTextCtrl*		text_path;
 	wxCheckListBox*	clb_options;
+	wxCheckBox*		cb_build_pvs;
 
 public:
 	NodesPrefsPanel(wxWindow* parent, bool frame = true);
 	~NodesPrefsPanel();
 
 	void	init();
-	void	populateOptions(string options);
+	void	populateOptions();
 	void	applyPreferences();
 
 	// Events

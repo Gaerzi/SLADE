@@ -957,6 +957,21 @@ void MainApp::readConfigFile()
 			}
 		}
 
+		// Read nodebuilder settings
+		if (token == "nodebuilder_settings")
+		{
+			token = tz.getToken();	// Skip {
+
+			// Read settings until closing brace found
+			token = tz.getToken();
+			while (token != "}")
+			{
+				string settings = tz.getToken();
+				NodeBuilders::addBuilderSettings(token, settings);
+				token = tz.getToken();
+			}
+		}
+
 		// Read game exe paths
 		if (token == "executable_paths")
 		{
@@ -1028,6 +1043,10 @@ void MainApp::saveConfigFile()
 	// Write nodebuilder paths
 	file.Write("\n");
 	NodeBuilders::saveBuilderPaths(file);
+
+	// Write nodebuilder settings
+	file.Write("\n");
+	NodeBuilders::saveBuilderSettings(file);
 
 	// Write game exe paths
 	file.Write("\nexecutable_paths\n{\n");

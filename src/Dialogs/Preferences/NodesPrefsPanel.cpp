@@ -38,8 +38,7 @@
  * EXTERNAL VARIABLES
  *******************************************************************/
 EXTERN_CVAR(String, nodebuilder_id)
-EXTERN_CVAR(String, nodebuilder_options)
-
+EXTERN_CVAR(Bool, nodebuilder_use_pvs)
 
 /*******************************************************************
  * NODESPREFSPANEL CLASS FUNCTIONS
@@ -64,6 +63,10 @@ NodesPrefsPanel::NodesPrefsPanel(wxWindow* parent, bool useframe) : PrefsPanelBa
 	}
 	else
 		sizer = psizer;
+
+	// Potentially Visible Set
+	cb_build_pvs = new wxCheckBox(this, -1, "Build Potentially Visible Set with GLVIS");
+	sizer->Add(cb_build_pvs, 0, wxEXPAND|wxALL, 4);
 
 	// Nodebuilder list
 	wxArrayString builders;
@@ -102,7 +105,8 @@ NodesPrefsPanel::NodesPrefsPanel(wxWindow* parent, bool useframe) : PrefsPanelBa
 
 	// Init
 	choice_nodebuilder->Select(sel);
-	populateOptions(nodebuilder_options);
+	cb_build_pvs->SetValue(nodebuilder_use_pvs);
+	populateOptions();
 }
 
 /* NodesPrefsPanel::~NodesPrefsPanel
@@ -127,14 +131,15 @@ void NodesPrefsPanel::init()
 		}
 	}
 	choice_nodebuilder->Select(sel);
-	populateOptions(nodebuilder_options);
+	cb_build_pvs->SetValue(nodebuilder_use_pvs);
+	populateOptions();
 }
 
 /* NodesPrefsPanel::populateOptions
  * Populates the options CheckListBox with options for the currently
  * selected node builder
  *******************************************************************/
-void NodesPrefsPanel::populateOptions(string options)
+void NodesPrefsPanel::populateOptions()
 {
 	// Get current builder
 	NodeBuilders::builder_t& builder = NodeBuilders::getBuilder(choice_nodebuilder->GetSelection());
@@ -149,7 +154,7 @@ void NodesPrefsPanel::populateOptions(string options)
 	for (unsigned a = 0; a < builder.option_desc.size(); a++)
 	{
 		clb_options->Append(builder.option_desc[a]);
-		if (!options.IsEmpty() && options.Contains(S_FMT(" %s ", builder.options[a])))
+		if (!builder.settings.IsEmpty() && builder.settings.Contains(S_FMT(" %s ", builder.options[a])))
 			clb_options->Check(a);
 	}
 }
@@ -173,7 +178,10 @@ void NodesPrefsPanel::applyPreferences()
 			opt += " ";
 		}
 	}
-	nodebuilder_options = opt;
+	builder.settings = opt;
+
+	// Set Potentially Visible Set option
+	nodebuilder_use_pvs = cb_build_pvs->GetValue();
 }
 
 
@@ -186,7 +194,7 @@ void NodesPrefsPanel::applyPreferences()
  *******************************************************************/
 void NodesPrefsPanel::onChoiceBuilderChanged(wxCommandEvent& e)
 {
-	populateOptions("");
+	populateOptions();
 }
 
 /* NodesPrefsPanel::onBtnBrowse

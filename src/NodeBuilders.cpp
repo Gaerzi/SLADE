@@ -33,6 +33,10 @@
 #include "NodeBuilders.h"
 #include "Parser.h"
 
+/*******************************************************************
+ * EXTERNAL VARIABLES
+ *******************************************************************/
+EXTERN_CVAR(String, nodebuilder_id)
 
 /*******************************************************************
  * VARIABLES
@@ -43,6 +47,7 @@ namespace NodeBuilders
 	builder_t			invalid;
 	string				custom;
 	vector<string>		builder_paths;
+	vector<string>		builder_settings;
 }
 
 
@@ -110,6 +115,10 @@ void NodeBuilders::init()
 	// Set builder paths
 	for (unsigned a = 0; a < builder_paths.size(); a+=2)
 		getBuilder(builder_paths[a]).path = builder_paths[a+1];
+
+	// Set builder settings
+	for (unsigned a = 0; a < builder_settings.size(); a+=2)
+		getBuilder(builder_settings[a]).settings = builder_settings[a+1];
 }
 
 /* NodeBuilders::addBUilderPath
@@ -129,6 +138,26 @@ void NodeBuilders::saveBuilderPaths(wxFile& file)
 	file.Write("nodebuilder_paths\n{\n");
 	for (unsigned a = 0; a < builders.size(); a++)
 		file.Write(S_FMT("\t%s \"%s\"\n", builders[a].id, builders[a].path));
+	file.Write("}\n");
+}
+
+/* NodeBuilders::addBuilderSettings
+ * Adds [settings] for [builder]
+ *******************************************************************/
+void NodeBuilders::addBuilderSettings(string builder, string settings)
+{
+	builder_settings.push_back(builder);
+	builder_settings.push_back(settings);
+}
+
+/* NodeBuilders::saveBuilderSettings
+ * Writes builder settings to [file]
+ *******************************************************************/
+void NodeBuilders::saveBuilderSettings(wxFile& file)
+{
+	file.Write("nodebuilder_settings\n{\n");
+	for (unsigned a = 0; a < builders.size(); a++)
+		file.Write(S_FMT("\t%s \"%s\"\n", builders[a].id, builders[a].settings));
 	file.Write("}\n");
 }
 
@@ -164,4 +193,28 @@ NodeBuilders::builder_t& NodeBuilders::getBuilder(unsigned index)
 		return invalid;
 
 	return builders[index];
+}
+
+/* NodeBuilders::glvisCompatible()
+ * Returns true if the current settings allow to use glvis
+ *******************************************************************/
+bool NodeBuilders::glvisCompatible()
+{
+	// First check that the glvis path is not empty
+	builder_t builder = getBuilder("glvis");
+	if (builder.path.IsEmpty())
+		return false;
+
+	// To use glvis, GL nodes need to have been built first. This can
+	// be done with GLBSP, or depending on settings with ZDBSP.
+	builder = getBuilder(nodebuilder_id);
+	if (!builder.name.CmpNoCase("GLBSP") && builder.path.length())
+		return true;
+	else if (!builder.name.CmpNoCase("ZDBSP") && builder.path.length() && 
+		builder.settings.Contains("--gl") && 
+		!builder.settings.Contains("--extended") &&
+		!builder.settings.Contains("--compress "))
+		return true;
+
+	return false;
 }
