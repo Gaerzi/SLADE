@@ -70,12 +70,14 @@ private:
 	EntryResourceMap	palettes;
 	EntryResourceMap	patches;
 	EntryResourceMap	graphics;
+	EntryResourceMap	sprites;
 	EntryResourceMap	flats;
 	EntryResourceMap	satextures;	// Stand Alone textures (e.g., between TX_ or T_ markers)
 	TextureResourceMap	textures;	// Composite textures (defined in a TEXTUREx/TEXTURES lump)
 
 	static ResourceManager*	instance;
 	static string Doom64HashTable[65536];
+	void   getAllEntries(vector<ArchiveEntry*>& list, Archive* priority, EntryResourceMap& map);
 
 public:
 	ResourceManager();
@@ -97,6 +99,8 @@ public:
 
 	void	listAllPatches();
 	void	getAllPatchEntries(vector<ArchiveEntry*>& list, Archive* priority);
+	void	getAllSpriteEntries(vector<ArchiveEntry*>& list, Archive* priority);
+	void	getAllGraphicEntries(vector<ArchiveEntry*>& list, Archive* priority);
 
 	void	getAllTextures(vector<TextureResource::tex_res_t>& list, Archive* priority, Archive* ignore = NULL);
 	void	getAllTextureNames(vector<string>& list);
@@ -106,6 +110,7 @@ public:
 
 	ArchiveEntry*	getPaletteEntry(string palette, Archive* priority = NULL);
 	ArchiveEntry*	getPatchEntry(string patch, string nspace = "patches", Archive* priority = NULL);
+	ArchiveEntry*	getSpriteEntry(string sprite, Archive* priority = NULL);
 	ArchiveEntry*	getFlatEntry(string flat, Archive* priority = NULL);
 	ArchiveEntry*	getTextureEntry(string texture, string nspace = "textures", Archive* priority = NULL);
 	CTexture*		getTexture(string texture, Archive* priority = NULL, Archive* ignore = NULL);

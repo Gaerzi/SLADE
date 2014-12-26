@@ -195,6 +195,9 @@ GLTexture* MapTextureManager::getTexture(string name, bool mixed)
 		if (mixed)
 			return getFlat(name, false);
 
+		else if (theGameConfiguration->mixTexEverything())
+			return getMiscGraphic(name);
+
 		// Otherwise use missing texture
 		else
 			mtex.texture = &(GLTexture::missingTex());
@@ -266,10 +269,89 @@ GLTexture* MapTextureManager::getFlat(string name, bool mixed)
 		if (mixed)
 			return getTexture(name, false);
 
+		else if (theGameConfiguration->mixTexEverything())
+			return getMiscGraphic(name);
+
 		// Otherwise use missing texture
 		else
 			mtex.texture = &(GLTexture::missingTex());
 	}
+
+	return mtex.texture;
+}
+
+
+/* MapTextureManager::getMiscGraphic
+ * Returns the graphic, patch or sprite matching [name]. Loads it 
+ * from resources if necessary. Does not support fancy wildcards.
+ *******************************************************************/
+GLTexture* MapTextureManager::getMiscGraphic(string name)
+{
+	// Get texture matching name
+	map_tex_t& mtex = patches[name.Upper()];
+
+	// Get desired filter type
+	int filter = 1;
+	if (map_tex_filter == 0)
+		filter = GLTexture::NEAREST_LINEAR_MIN;
+	else if (map_tex_filter == 1)
+		filter = GLTexture::LINEAR;
+	else if (map_tex_filter == 2)
+		filter = GLTexture::LINEAR_MIPMAP;
+	else if (map_tex_filter == 3)
+		filter = GLTexture::NEAREST_MIPMAP;
+
+	// If the texture is loaded
+	if (mtex.texture)
+	{
+		// If the texture filter matches the desired one, return it
+		if (mtex.texture->getFilter() == filter)
+			return mtex.texture;
+		else
+		{
+			// Otherwise, reload the texture
+			if (mtex.texture != &(GLTexture::missingTex())) delete mtex.texture;
+			mtex.texture = NULL;
+		}
+	}
+
+	// Look for patches
+	if (!mtex.texture)
+	{
+		ArchiveEntry* entry = theResourceManager->getPatchEntry(name, "hires", archive);
+		if (entry == NULL)
+			entry = theResourceManager->getPatchEntry(name, "patches", archive);
+		if (entry)
+		{
+			SImage image;
+			if (Misc::loadImageFromEntry(&image, entry))
+			{
+				mtex.texture = new GLTexture(false);
+				mtex.texture->setFilter(filter);
+				mtex.texture->loadImage(&image, palette);
+			}
+		}
+	}
+
+	// Then look for sprites
+	if (!mtex.texture)
+	{
+		ArchiveEntry* entry = theResourceManager->getSpriteEntry(name, archive);
+		if (entry)
+		{
+			SImage image;
+			if (Misc::loadImageFromEntry(&image, entry))
+			{
+				mtex.texture = new GLTexture(false);
+				mtex.texture->setFilter(filter);
+				mtex.texture->loadImage(&image, palette);
+			}
+		}
+	}
+
+	// Not found, use missing texture
+	if (!mtex.texture)
+		mtex.texture = &(GLTexture::missingTex());
 
 	return mtex.texture;
 }
@@ -513,12 +595,12 @@ void MapTextureManager::buildTexInfoList()
 	// --- Textures ---
 
 	// Composite textures
-	vector<TextureResource::tex_res_t> textures;
-	theResourceManager->getAllTextures(textures, NULL);
-	for (unsigned a = 0; a < textures.size(); a++)
+	vector<TextureResource::tex_res_t> v_textures;
+	theResourceManager->getAllTextures(v_textures, NULL);
+	for (unsigned a = 0; a < v_textures.size(); a++)
 	{
-		CTexture * tex = textures[a].tex;
-		Archive* parent = textures[a].parent;
+		CTexture * tex = v_textures[a].tex;
+		Archive* parent = v_textures[a].parent;
 		if (tex->isExtended())
 		{
 			if (S_CMPNOCASE(tex->getType(), "texture") || S_CMPNOCASE(tex->getType(), "walltexture"))
@@ -527,7 +609,9 @@ void MapTextureManager::buildTexInfoList()
 				tex_info.push_back(map_texinfo_t(tex->getName(), TC_HIRES, parent));
 			else if (S_CMPNOCASE(tex->getType(), "flat"))
 				flat_info.push_back(map_texinfo_t(tex->getName(), TC_TEXTURES, parent));
-			// Ignore graphics, patches and sprites
+			// Don't ignore graphics, patches and sprites
+			else if (S_CMPNOCASE(tex->getType(), "graphic") || S_CMPNOCASE(tex->getType(), "sprite"))
+				misc_info.push_back(map_texinfo_t(tex->getName(), TC_TEXTURES, parent));
 		}
 		else
 			tex_info.push_back(map_texinfo_t(tex->getName(), TC_TEXTUREX, parent, "", tex->getIndex() + 1));
@@ -536,14 +620,14 @@ void MapTextureManager::buildTexInfoList()
 	// Texture namespace patches (TX_)
 	if (theGameConfiguration->txTextures())
 	{
-		vector<ArchiveEntry*> patches;
-		theResourceManager->getAllPatchEntries(patches, NULL);
-		for (unsigned a = 0; a < patches.size(); a++)
+		vector<ArchiveEntry*> v_patches;
+		theResourceManager->getAllPatchEntries(v_patches, NULL);
+		for (unsigned a = 0; a < v_patches.size(); a++)
 		{
-			if (patches[a]->isInNamespace("textures") || patches[a]->isInNamespace("hires"))
+			if (v_patches[a]->isInNamespace("textures") || v_patches[a]->isInNamespace("hires"))
 			{
 				// Determine texture path if it's in a pk3
-				string path = patches[a]->getPath();
+				string path = v_patches[a]->getPath();
 				if (path.StartsWith("/textures/"))
 					path.Remove(0, 9);
 				else if (path.StartsWith("/hires/"))
@@ -551,17 +635,17 @@ void MapTextureManager::buildTexInfoList()
 				else
 					path = "";
 
-				tex_info.push_back(map_texinfo_t(patches[a]->getName(true), TC_TX, patches[a]->getParent(), path));
+				tex_info.push_back(map_texinfo_t(v_patches[a]->getName(true), TC_TX, v_patches[a]->getParent(), path));
 			}
 		}
 	}
 
 	// Flats
-	vector<ArchiveEntry*> flats;
-	theResourceManager->getAllFlatEntries(flats, NULL);
-	for (unsigned a = 0; a < flats.size(); a++)
+	vector<ArchiveEntry*> v_flats;
+	theResourceManager->getAllFlatEntries(v_flats, NULL);
+	for (unsigned a = 0; a < v_flats.size(); a++)
 	{
-		ArchiveEntry* entry = flats[a];
+		ArchiveEntry* entry = v_flats[a];
 
 		// Determine flat path if it's in a pk3
 		string path = entry->getPath();
@@ -570,7 +654,33 @@ void MapTextureManager::buildTexInfoList()
 		else
 			path = "";
 
-		flat_info.push_back(map_texinfo_t(entry->getName(true), TC_NONE, flats[a]->getParent(), path));
+		flat_info.push_back(map_texinfo_t(entry->getName(true), TC_NONE, v_flats[a]->getParent(), path));
+	}
+
+	// Patches and sprites
+	if (theGameConfiguration->mixTexEverything())
+	{
+		vector<ArchiveEntry*> v_misc;
+		theResourceManager->getAllPatchEntries(v_misc, NULL);
+		theResourceManager->getAllGraphicEntries(v_misc, NULL);
+		theResourceManager->getAllSpriteEntries(v_misc, NULL);
+		for (unsigned a = 0; a < v_misc.size(); a++)
+		{
+			ArchiveEntry* entry = v_misc[a];
+
+			// Determine flat path if it's in a pk3
+			string path = entry->getPath();
+			if (path.StartsWith("/patches/") || path.StartsWith("/sprites/"))
+				path.Remove(0, 8);
+			if (path.StartsWith("/graphics/"))
+				path.Remove(0, 9);
+			else if (path.StartsWith("/hires/"))
+				path.Remove(0, 6);
+			else
+				path = "";
+
+			misc_info.push_back(map_texinfo_t(entry->getName(true), TC_NONE, v_misc[a]->getParent(), path));
+		}
 	}
 }
 

@@ -41,12 +41,14 @@ private:
 	Archive*				archive;
 	MapTexHashMap			textures;
 	MapTexHashMap			flats;
+	MapTexHashMap			patches;
 	MapTexHashMap			sprites;
 	MapTexHashMap			editor_images;
 	bool					editor_images_loaded;
 	Palette8bit*			palette;
 	vector<map_texinfo_t>	tex_info;
 	vector<map_texinfo_t>	flat_info;
+	vector<map_texinfo_t>	misc_info;
 
 public:
 	enum
@@ -70,11 +72,13 @@ public:
 	GLTexture*		getTexture(string name, bool mixed);
 	GLTexture*		getFlat(string name, bool mixed);
 	GLTexture*		getSprite(string name, string translation = "", string palette = "");
+	GLTexture*		getMiscGraphic(string name);
 	GLTexture*		getEditorImage(string name);
 	int				getVerticalOffset(string name);
 	
 	vector<map_texinfo_t>&	getAllTexturesInfo() { return tex_info; }
 	vector<map_texinfo_t>&	getAllFlatsInfo() { return flat_info; }
+	vector<map_texinfo_t>&	getAllMiscInfo() { return misc_info; }
 
 	void	onAnnouncement(Announcer* announcer, string event_name, MemChunk& event_data);
 };

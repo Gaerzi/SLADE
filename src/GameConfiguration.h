@@ -116,6 +116,7 @@ private:
 	ThingType			ttype_unknown;		// Default thing type
 	bool				any_map_name;		// Allow any map name
 	bool				mix_tex_flats;		// Allow mixed textures/flats
+	bool				mix_tex_everything;	// Allow patches and sprites to be used as textures!
 	bool				tx_textures;		// Allow TX_ textures
 	string				sky_flat;			// Sky flat for 3d mode
 	string				script_language;	// Scripting language (should be extended to allow multiple)
@@ -214,6 +215,7 @@ public:
 	bool	supportsSectorFlags() { return boom_sector_flag_start > 0; }
 	bool	anyMapName() { return any_map_name; }
 	bool	mixTexFlats() { return mix_tex_flats; }
+	bool	mixTexEverything() { return mix_tex_everything; }
 	bool	txTextures() { return tx_textures; }
 	string	udmfNamespace();
 	string	skyFlat() { return sky_flat; }

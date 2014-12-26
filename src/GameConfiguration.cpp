@@ -100,6 +100,7 @@ void GameConfiguration::setDefaults()
 	ttype_unknown.shrink = true;
 	any_map_name = false;
 	mix_tex_flats = false;
+	mix_tex_everything = false;
 	tx_textures = false;
 	defaults_line.clear();
 	defaults_side.clear();
@@ -927,6 +928,10 @@ void GameConfiguration::readGameSection(ParseTreeNode* node_game, bool port_sect
 		// Mixed Textures and Flats
 		else if (S_CMPNOCASE(node->getName(), "mix_tex_flats"))
 			mix_tex_flats = node->getBoolValue();
+
+		// Mixed Textures and Flats and Patches and Sprites and whatever
+		else if (S_CMPNOCASE(node->getName(), "mix_tex_everything"))
+			mix_tex_everything = node->getBoolValue();
 
 		// TX_/'textures' namespace enabled
 		else if (S_CMPNOCASE(node->getName(), "tx_textures"))

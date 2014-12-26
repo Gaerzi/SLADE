@@ -273,9 +273,17 @@ void ResourceManager::addEntry(ArchiveEntry* entry)
 		if (type->extraProps().propertyExists("patch") || entry->isInNamespace("patches"))
 			patches[name].add(entry);
 
+		// Check for sprite entry
+		if (entry->isInNamespace("sprites"))
+			sprites[name].add(entry);
+
 		// Check for flat entry
 		if (type->getId() == "gfx_flat" || entry->isInNamespace("flats"))
 			flats[name].add(entry);
+
+		// Check for graphics
+		if (entry->isInNamespace("graphics") || entry->isInNamespace("global"))
+			graphics[name].add(entry);
 
 		// Check for stand-alone texture entry
 		if (entry->isInNamespace("textures") || entry->isInNamespace("hires"))
@@ -340,6 +348,12 @@ void ResourceManager::removeEntry(ArchiveEntry* entry)
 	// Remove from flats
 	flats[name].remove(entry);
 
+	// Remove from sprites
+	sprites[name].remove(entry);
+
+	// Remove from graphics
+	graphics[name].remove(entry);
+
 	// Remove from stand-alone textures
 	satextures[name].remove(entry);
 
@@ -378,15 +392,15 @@ void ResourceManager::listAllPatches()
 	}
 }
 
-/* ResourceManager::getAllPatchEntries
- * Adds all current patch entries to [list]
+/* ResourceManager::getAllEntries
+ * Adds all current entries from [map] to [list]
  *******************************************************************/
-void ResourceManager::getAllPatchEntries(vector<ArchiveEntry*>& list, Archive* priority)
+void ResourceManager::getAllEntries(vector<ArchiveEntry*>& list, Archive* priority, EntryResourceMap& map)
 {
-	EntryResourceMap::iterator i = patches.begin();
+	EntryResourceMap::iterator i = map.begin();
 
 	// Add all primary entries to the list
-	while (i != patches.end())
+	while (i != map.end())
 	{
 		// Skip if no entries
 		if (i->second.length() == 0)
@@ -416,6 +430,30 @@ void ResourceManager::getAllPatchEntries(vector<ArchiveEntry*>& list, Archive* p
 
 		i++;
 	}
+}
+
+/* ResourceManager::getAllPatchEntries
+ * Adds all current patch entries to [list]
+ *******************************************************************/
+void ResourceManager::getAllPatchEntries(vector<ArchiveEntry*>& list, Archive* priority)
+{
+	getAllEntries(list, priority, patches);
+}
+
+/* ResourceManager::getAllSpriteEntries
+ * Adds all current sprite entries to [list]
+ *******************************************************************/
+void ResourceManager::getAllSpriteEntries(vector<ArchiveEntry*>& list, Archive* priority)
+{
+	getAllEntries(list, priority, sprites);
+}
+
+/* ResourceManager::getAllGraphicEntries
+ * Adds all current graphic entries to [list]
+ *******************************************************************/
+void ResourceManager::getAllGraphicEntries(vector<ArchiveEntry*>& list, Archive* priority)
+{
+	getAllEntries(list, priority, graphics);
 }
 
 /* ResourceManager::getAllTextures
@@ -490,39 +528,7 @@ void ResourceManager::getAllTextureNames(vector<string>& list)
  *******************************************************************/
 void ResourceManager::getAllFlatEntries(vector<ArchiveEntry*>& list, Archive* priority)
 {
-	EntryResourceMap::iterator i = flats.begin();
-
-	// Add all primary entries to the list
-	while (i != flats.end())
-	{
-		// Skip if no entries
-		if (i->second.length() == 0)
-		{
-			i++;
-			continue;
-		}
-
-		// Go through resource entries
-		ArchiveEntry* entry = i->second.entries[0];
-		for (int a = 0; a < i->second.length(); a++)
-		{
-			entry = i->second.entries[a];
-
-			// If it's in the 'priority' archive, exit loop
-			if (priority && i->second.entries[a]->getParent() == priority)
-				break;
-
-			// Otherwise, if it's in a 'later' archive than the current resource entry, set it
-			if (theArchiveManager->archiveIndex(entry->getParent()) <=
-			        theArchiveManager->archiveIndex(i->second.entries[a]->getParent()))
-				entry = i->second.entries[a];
-		}
-
-		// Add entry to the list
-		list.push_back(entry);
-
-		i++;
-	}
+	getAllEntries(list, priority, flats);
 }
 
 /* ResourceManager::getAllFlatNames
@@ -624,6 +630,39 @@ ArchiveEntry* ResourceManager::getPatchEntry(string patch, string nspace, Archiv
 			        theArchiveManager->archiveIndex(res.entries[a]->getParent()))
 				entry = res.entries[a];
 		}
+	}
+
+	// Return most relevant entry
+	return entry;
+}
+
+/* ResourceManager::getSpriteEntry
+ * Returns the most appropriate managed resource entry for [sprite],
+ * or NULL if no match found
+ *******************************************************************/
+ArchiveEntry* ResourceManager::getSpriteEntry(string sprite, Archive* priority)
+{
+	// Check resource with matching name exists
+	EntryResource& res = sprites[sprite];
+	if (res.entries.size() == 0)
+		return NULL;
+
+	// Go through resource entries
+	ArchiveEntry* entry = res.entries[0];
+	for (unsigned a = 0; a < res.entries.size(); a++)
+	{
+		// If it's in the 'priority' archive, return it
+		if (priority && (res.entries[a]->getParent() == priority ||
+		                 // PK3 and Doom64 maps are contained in an embedded .wad,
+		                 // so for them the real priority archive is their parent
+		                 // archive's own parent archive.
+		                 res.entries[a]->getParent() == priority->getParentArchive()))
+			return res.entries[a];
+
+		// Otherwise, if it's in a 'later' archive than the current resource entry, set it
+		if (theArchiveManager->archiveIndex(entry->getParent()) <=
+		        theArchiveManager->archiveIndex(res.entries[a]->getParent()))
+			entry = res.entries[a];
 	}
 
 	// Return most relevant entry
