@@ -15,18 +15,14 @@ private:
 	TextureXList*	texturex;
 
 protected:
-	string	getItemText(long item, long column, long index) const;
-	void	updateItemAttr(long item, long column, long index) const;
+	string	getItemText(long item, long column) const;
+	void	updateItemAttr(long item) const;
 
 public:
 	TextureXListView(wxWindow* parent, TextureXList* texturex);
 	~TextureXListView();
 
-	TextureXList*	txList() { return texturex; }
-
-	void		updateList(bool clear = false);
-	static bool	sizeSort(long left, long right);
-	void		sortItems();
+	void	updateList(bool clear = false);
 };
 
 class TextureXPanel : public wxPanel, SActionHandler
