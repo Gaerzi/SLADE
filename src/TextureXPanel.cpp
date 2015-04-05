@@ -53,7 +53,11 @@
  * EXTERNAL VARIABLES
  *******************************************************************/
 EXTERN_CVAR(String, dir_last)
-EXTERN_CVAR(Bool, wad_force_uppercase)
+
+/*******************************************************************
+ * VARIABLES
+ *******************************************************************/
+CVAR(Bool, tex_force_uppercase, true, CVAR_SAVE)
 
 
 /*******************************************************************
@@ -86,18 +90,18 @@ TextureXListView::~TextureXListView()
 /* TextureXListView::getItemText
  * Returns the string for [item] at [column]
  *******************************************************************/
-string TextureXListView::getItemText(long item, long column) const
+string TextureXListView::getItemText(long item, long column, long index) const
 {
 	// Check texture list exists
 	if (!texturex)
 		return "INVALID INDEX";
 
 	// Check index is ok
-	if (item < 0 || (unsigned)item > texturex->nTextures())
+	if (index < 0 || (unsigned)index > texturex->nTextures())
 		return "INVALID INDEX";
 
 	// Get associated texture
-	CTexture* tex = texturex->getTexture(item);
+	CTexture* tex = texturex->getTexture(index);
 
 	if (column == 0)						// Name column
 		return tex->getName();
@@ -113,18 +117,18 @@ string TextureXListView::getItemText(long item, long column) const
  * Called when widget requests the attributes (text colour /
  * background colour / font) for [item]
  *******************************************************************/
-void TextureXListView::updateItemAttr(long item, long column) const
+void TextureXListView::updateItemAttr(long item, long column, long index) const
 {
 	// Check texture list exists
 	if (!texturex)
 		return;
 
 	// Check index is ok
-	if (item < 0 || (unsigned)item > texturex->nTextures())
+	if (index < 0 || (unsigned)index > texturex->nTextures())
 		return;
 
 	// Get associated texture
-	CTexture* tex = texturex->getTexture(item);
+	CTexture* tex = texturex->getTexture(index);
 
 	// Init attributes
 	item_attr->SetTextColour(WXCOL(ColourConfiguration::getColour("error")));
@@ -157,13 +161,48 @@ void TextureXListView::updateList(bool clear)
 		ClearAll();
 
 	// Set list size
+	items.clear();
 	if (texturex)
-		SetItemCount(texturex->nTextures());
+	{
+		unsigned count = texturex->nTextures();
+		SetItemCount(count);
+		for (unsigned a = 0; a < count; a++)
+			items.push_back(a);
+	}
 	else
 		SetItemCount(0);
 
+	sortItems();
 	updateWidth();
 	Refresh();
+}
+
+/* TextureXListView::sizeSort
+ * Returns true if texture at index [left] is smaller than [right]
+ *******************************************************************/
+bool TextureXListView::sizeSort(long left, long right)
+{
+	CTexture* tl = ((TextureXListView*)lv_current)->txList()->getTexture(left);
+	CTexture* tr = ((TextureXListView*)lv_current)->txList()->getTexture(right);
+	int s1 = tl->getWidth() * tl->getHeight();
+	int s2 = tr->getWidth() * tr->getHeight();
+
+	if (s1 == s2)
+		return left < right;
+	else
+		return lv_current->sortDescend() ? s1 > s2 : s2 > s1;
+}
+
+/* TextureXListView::sortItems
+ * Sorts the list items depending on the current sorting column
+ *******************************************************************/
+void TextureXListView::sortItems()
+{
+	lv_current = this;
+	if (sort_column == 1)
+		std::sort(items.begin(), items.end(), &TextureXListView::sizeSort);
+	else
+		std::sort(items.begin(), items.end(), &VirtualListView::defaultSort);
 }
 
 
@@ -406,7 +445,10 @@ void TextureXPanel::newTexture()
 		return;
 
 	// Process name
-	name = name.Upper().Truncate(8);
+	if (tex_force_uppercase) 
+		name.MakeUpper();
+	if (texturex.getFormat() != TXF_TEXTURES)
+		name = name.Truncate(8);
 
 	// Create new texture
 	CTexture* tex = new CTexture();
@@ -845,7 +887,9 @@ void TextureXPanel::renameTexture(bool each)
 		{
 			// Prompt for a new name
 			string new_name = wxGetTextFromUser("Enter new texture name: (* = unchanged)", "Rename", selection[a]->getName());
-			if (wad_force_uppercase) new_name.MakeUpper();
+			if (texturex.getFormat() != TXF_TEXTURES)
+				new_name = new_name.Truncate(8);
+			if (tex_force_uppercase) new_name.MakeUpper();
 
 			// Rename entry (if needed)
 			if (!new_name.IsEmpty() && selection[a]->getName() != new_name)
@@ -868,7 +912,9 @@ void TextureXPanel::renameTexture(bool each)
 
 		// Prompt for a new name
 		string new_name = wxGetTextFromUser("Enter new texture name: (* = unchanged)", "Rename", filter);
-		if (wad_force_uppercase) new_name.MakeUpper();
+		if (texturex.getFormat() != TXF_TEXTURES)
+			new_name = new_name.Truncate(8);
+		if (tex_force_uppercase) new_name.MakeUpper();
 
 		// Apply mass rename to list of names
 		if (!new_name.IsEmpty())
