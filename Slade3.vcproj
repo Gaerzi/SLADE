@@ -124,7 +124,7 @@
 				EnableIntrinsicFunctions="true"
 				WholeProgramOptimization="false"
 				AdditionalIncludeDirectories="src;gme\gme;libmodplug\libmodplug"
-				PreprocessorDefinitions="WIN32;USE_SFML_RENDERWINDOW;__WXMSW__;_WINDOWS;NOPCH;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;GLEW_STATIC;SFML_STATIC;NDEBUG;UPDATEREVISION"
+				PreprocessorDefinitions="WIN32;USE_SFML_RENDERWINDOW;USE_WEBVIEW_STARTPAGE;__WXMSW__;_WINDOWS;NOPCH;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;GLEW_STATIC;SFML_STATIC;NDEBUG;UPDATEREVISION"
 				GeneratePreprocessedFile="0"
 				StringPooling="true"
 				RuntimeLibrary="2"
@@ -145,7 +145,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalOptions="/NODEFAULTLIB:LIBCMT"
-				AdditionalDependencies="winmm.lib comctl32.lib rpcrt4.lib wsock32.lib user32.lib shell32.lib advapi32.lib comdlg32.lib gdi32.lib ole32.lib oleaut32.lib fluidsynth.lib FreeImage.lib wxbase31u.lib wxmsw31u_core.lib wxmsw31u_aui.lib wxmsw31u_gl.lib wxmsw31u_html.lib wxmsw31u_adv.lib wxmsw31u_stc.lib wxmsw31u_media.lib wxtiff.lib wxjpeg.lib wxpng.lib wxzlib.lib wxregexu.lib wxexpat.lib wxscintilla.lib sfml-graphics-s.lib sfml-window-s.lib sfml-audio-s.lib sfml-system-s.lib sfml-main.lib"
+				AdditionalDependencies="winmm.lib comctl32.lib rpcrt4.lib wsock32.lib user32.lib shell32.lib advapi32.lib comdlg32.lib gdi32.lib ole32.lib oleaut32.lib fluidsynth.lib FreeImage.lib wxbase31u.lib wxmsw31u_core.lib wxmsw31u_aui.lib wxmsw31u_gl.lib wxmsw31u_html.lib wxmsw31u_adv.lib wxmsw31u_stc.lib wxmsw31u_media.lib wxtiff.lib wxjpeg.lib wxpng.lib wxzlib.lib wxregexu.lib wxexpat.lib wxscintilla.lib sfml-graphics-s.lib sfml-window-s.lib sfml-audio-s.lib sfml-system-s.lib sfml-main.lib glu32.lib"
 				LinkIncremental="1"
 				GenerateManifest="true"
 				GenerateDebugInformation="true"
@@ -1590,6 +1590,10 @@
 							>
 						</File>
 						<File
+							RelativePath=".\dist\res\config\games\srb2.cfg"
+							>
+						</File>
+						<File
 							RelativePath=".\dist\res\config\games\strife.cfg"
 							>
 						</File>
@@ -1638,6 +1642,10 @@
 							</File>
 							<File
 								RelativePath=".\dist\res\config\games\include\sectors_hexen.cfg"
+								>
+							</File>
+							<File
+								RelativePath=".\dist\res\config\games\include\sectors_strife.cfg"
 								>
 							</File>
 							<File
@@ -1702,6 +1710,10 @@
 							</File>
 							<File
 								RelativePath=".\dist\res\config\games\include\things_hexen.cfg"
+								>
+							</File>
+							<File
+								RelativePath=".\dist\res\config\games\include\things_srb2.cfg"
 								>
 							</File>
 							<File
