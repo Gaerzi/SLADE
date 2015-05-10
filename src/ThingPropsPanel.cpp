@@ -533,16 +533,15 @@ ThingPropsPanel::ThingPropsPanel(wxWindow* parent) : PropsPanelBase(parent)
 	if (!udmf_flags_extra.empty())
 		nb_tabs->AddPage(setupExtraFlagsTab(), "Extra Flags");
 
-	// Special tab
-	if (theMapEditor->currentMapDesc().format != MAP_DOOM)
-		nb_tabs->AddPage(panel_special = new ActionSpecialPanel(nb_tabs, false), "Special");
-
-	// Args tab
+	// Special & Args tab
 	if (theMapEditor->currentMapDesc().format != MAP_DOOM)
 	{
-		nb_tabs->AddPage(panel_args = new ArgsPanel(nb_tabs), "Args");
-		if (panel_special)
-			panel_special->setArgsPanel(panel_args);
+		panel_special = new ActionSpecialPanel(nb_tabs, false);
+		nb_tabs->AddPage(panel_special, "Special");
+
+		panel_args = new ArgsPanel(nb_tabs);
+		nb_tabs->AddPage(panel_args, "Args");
+		panel_special->setArgsPanel(panel_args);
 	}
 
 	// Other Properties tab

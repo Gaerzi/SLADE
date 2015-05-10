@@ -563,9 +563,13 @@ ArgsPanel::ArgsPanel(wxWindow* parent)
 
 	for (unsigned a = 0; a < 5; a++)
 	{
-		label_args[a] = new wxStaticText(this, -1, "");
-		control_args[a] = NULL;
-		label_args_desc[a] = new wxStaticText(this, -1, "", wxDefaultPosition, wxSize(100, -1));
+		label_args[a] = new wxStaticText(this, -1, S_FMT("Arg %d:", a + 1));
+		control_args[a] = new ArgsTextControl(this);
+		label_args_desc[a] = new wxStaticText(this, -1, S_FMT("Argument %d", a + 1), wxDefaultPosition, wxSize(100, -1));
+		fg_sizer->Add(label_args[a], wxSizerFlags().Align(wxALIGN_TOP|wxALIGN_RIGHT).Border(wxALL, 4));
+		fg_sizer->Add(control_args[a], wxSizerFlags().Expand());
+		fg_sizer->Add(0, 0);
+		fg_sizer->Add(label_args_desc[a], wxSizerFlags().Expand());
 	}
 
 	// Set up vertical scrollbar
@@ -624,6 +628,7 @@ void ArgsPanel::setup(argspec_t* args)
 			// Add an empty spacer to the first column
 			fg_sizer->Add(0, 0);
 			fg_sizer->Add(label_args_desc[a], wxSizerFlags().Expand());
+			label_args_desc[a]->Show(true);
 		}
 	}
 
