@@ -1219,7 +1219,13 @@ void MapRenderer3D::updateLine(unsigned index)
 		xoff = xoff1;
 		yoff = yoff1;
 		if (lpeg)	// Lower unpegged
-			yoff += (ceiling1 - floor2);
+		{
+			// Unpegged lower lines don't work the same 
+			if (line->frontSector()->getCeilingTex() == sky_flat && line->backSector()->getCeilingTex() == sky_flat)
+				yoff += (ceiling2 - floor2);
+			else
+				yoff += (ceiling1 - floor2);
+		}
 		if (udmf_zdoom)
 		{
 			// ZDoom UDMF extra offsets
