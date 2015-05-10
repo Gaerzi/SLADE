@@ -466,7 +466,7 @@ public:
 			mc.read(&samplerate, 2);
 			mc.read(&samples, 4);
 
-			if (head == 3 && samples <= (mc.getSize() - 8) && samples > 4)
+			if (head == 3 && samples <= (mc.getSize() - 8) && samples > 4 && samplerate >= 11025)
 				return EDF_TRUE;
 		}
 
@@ -793,6 +793,7 @@ public:
 		{
 			size_t nsamples = READ_L32(mc, 0);
 			if (size < (nsamples + 9)
+				&& size < 1024
 				&& size > (nsamples + 6)
 				&& mc[nsamples+6] == 0)
 				return EDF_TRUE;
@@ -821,7 +822,7 @@ public:
 	int isThisFormat(MemChunk& mc)
 	{
 		size_t size = mc.getSize();
-		if (size > 24)
+		if (size > 24 && size < 1024)
 		{
 			// Octave block value must be less than 8, sustain shouldn't be null
 			if (mc[22] > 7 || (mc[12]|mc[13])==0)

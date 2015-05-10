@@ -587,7 +587,8 @@ public:
 	int isThisFormat(MemChunk& mc)
 	{
 		size_t size = mc.getSize();
-		if (size < 640 || size % 32)
+		// Smallest pic size 832 (32x16), largest pic size 33088 (256x128)
+		if (size < 640 || size % 32 || size > 33088)
 			return EDF_FALSE;
 
 		// Verify duplication of content
