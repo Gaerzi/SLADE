@@ -193,6 +193,14 @@
 			Name="Dialogs"
 			>
 			<File
+				RelativePath=".\src\Dialogs\DirArchiveUpdateDialog.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Dialogs\DirArchiveUpdateDialog.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\ExtMessageDialog.cpp"
 				>
 			</File>
@@ -833,6 +841,14 @@
 				</File>
 				<File
 					RelativePath=".\src\ConsolePanel.h"
+					>
+				</File>
+				<File
+					RelativePath=".\src\DocsPage.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\src\DocsPage.h"
 					>
 				</File>
 				<Filter
