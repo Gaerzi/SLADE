@@ -13,6 +13,8 @@ namespace Audio
 	string		getS3MComments(MemChunk& mc);
 	string		getXMComments(MemChunk& mc);
 	string		getWavInfo(MemChunk& mc);
+	string		getVocInfo(MemChunk& mc);
+	string		getSunInfo(MemChunk& mc);
 }
 
 #endif // __AUDIOTAGS_H__

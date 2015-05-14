@@ -447,6 +447,14 @@ entry_types
 		editor = audio;
 	}
 
+	snd_sun : sound
+	{
+		name = "Sound (Sun/NeXT)";
+		format = snd_sun;
+		export_ext = "snd";
+		editor = audio;
+	}
+
 	snd_ogg : sound
 	{
 		name = "Sound (Ogg Vorbis)";

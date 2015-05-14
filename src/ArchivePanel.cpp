@@ -2163,6 +2163,9 @@ bool ArchivePanel::dSndWavConvert()
 		// Or Creative Voice File format
 		else if (selection[a]->getType()->getFormat() == "snd_voc")
 			worked = Conversions::vocToWav(selection[a]->getMCData(), wav);
+		// Or Sun/NeXT sound format
+		else if (selection[a]->getType()->getFormat() == "snd_sun")
+			worked = Conversions::vocToWav(selection[a]->getMCData(), wav);
 		// Or Blood SFX format (this one needs to be given the entry, not just the mem chunk)
 		else if (selection[a]->getType()->getFormat() == "snd_bloodsfx")
 			worked = Conversions::bloodToWav(selection[a], wav);
@@ -3026,6 +3029,7 @@ void ArchivePanel::onEntryListRightClick(wxListEvent& e)
 			        selection[a]->getType()->getFormat() == "snd_doom_mac" ||
 			        selection[a]->getType()->getFormat() == "snd_jaguar" ||
 			        selection[a]->getType()->getFormat() == "snd_bloodsfx" ||
+			        selection[a]->getType()->getFormat() == "snd_sun" ||
 			        selection[a]->getType()->getFormat() == "snd_voc")
 				dsnd_selected = true;
 		}

@@ -292,6 +292,7 @@ void EntryDataFormat::initBuiltinFormats()
 	new VGZDataFormat();
 	new BloodSFXDataFormat();
 	new WAVDataFormat();
+	new SunSoundDataFormat();
 	new OggDataFormat();
 	new FLACDataFormat();
 	new MP2DataFormat();

@@ -87,6 +87,16 @@ struct spksnd_header_t
 	uint16_t zero;
 	uint16_t samples;
 };
+// Sun sound header
+struct sunsnd_header_t
+{
+	uint32_t magic;
+	uint32_t offset;
+	uint32_t size;
+	uint32_t format;
+	uint32_t rate;
+	uint32_t channels;
+};
 
 /*******************************************************************
  * FUNCTIONS
@@ -573,7 +583,7 @@ bool Conversions::bloodToWav(ArchiveEntry* in, MemChunk& out)
  *******************************************************************/
 bool Conversions::wolfSndToWav(MemChunk& in, MemChunk& out)
 {
-	// --- Read Doom sound ---
+	// --- Read Wolf sound ---
 
 	// Read samples
 	size_t numsamples = in.getSize();
@@ -867,9 +877,6 @@ bool Conversions::spkSndToWav(MemChunk& in, MemChunk& out, bool audioT)
 			{
 				// Finally, convert frequency into sample value
 				int pos = (s*FACTOR) + i;
-				//double time   = (double)pos/(double)RATE;
-				//double sample = 1.0 + sin(time * 2.0 * PI * f);
-				//nsamples[pos] = (uint8_t)(sample*128.0);
 				nsamples[pos] = 128 + sign*PC_VOLUME;
 				if (phase_tic++ >= phase_length)
 				{
@@ -928,3 +935,113 @@ bool Conversions::spkSndToWav(MemChunk& in, MemChunk& out, bool audioT)
 	return true;
 }
 
+/* Conversions::auSndToWav
+ * Converts Sun/NeXT sound data [in] to wav format, written to [out]
+ *******************************************************************/
+bool Conversions::auSndToWav(MemChunk& in, MemChunk& out)
+{
+	// --- Read Sun sound ---
+
+	// Read doom sound header
+	sunsnd_header_t header;
+	in.seek(0, SEEK_SET);
+	in.read(&header, 24);
+
+	header.magic = wxUINT32_SWAP_ON_LE(header.magic);
+	header.offset = wxUINT32_SWAP_ON_LE(header.offset);
+	header.size = wxUINT32_SWAP_ON_LE(header.size);
+	header.format = wxUINT32_SWAP_ON_LE(header.format);
+	header.rate = wxUINT32_SWAP_ON_LE(header.rate);
+	header.channels = wxUINT32_SWAP_ON_LE(header.channels);
+
+	// Format checks
+	if (header.magic != 0x2E736E64)  	// ASCII code for ".snd"
+	{
+		Global::error = "Invalid Sun Sound";
+		return false;
+	}
+	// Only cover integer linear PCM for now
+	if (header.format < 2 || header.format > 5)
+	{
+		Global::error = S_FMT("Unsupported Sun Sound format (%d)", header.format);
+		return false;
+	}
+	uint8_t samplesize = header.format - 1;
+	if (header.format == 1) samplesize = 1;
+	else if (header.format >= 6) --samplesize;
+
+	// Read samples
+	uint8_t* samples = new uint8_t[header.size];
+	in.read(samples, header.size);
+
+	// Swap endianness around if needed
+	if (samplesize > 1)
+	{
+		uint8_t swapval = 0;
+		for (size_t i = 0; i < header.size / samplesize; ++i)
+		{
+			switch (samplesize)
+			{
+			case 2:
+				swapval = samples[i*2];
+				samples[i*2] = samples[i*2 + 1];
+				samples[i*2 + 1] = swapval;
+				break;
+			case 3:
+				swapval = samples[i*3];
+				samples[i*3] = samples[i*3 + 2];
+				samples[i*3 + 2] = swapval;
+				break;
+			case 4:
+				swapval = samples[i*4];
+				samples[i*4] = samples[i*4 + 3];
+				samples[i*4 + 3] = swapval;
+				swapval = samples[i*4 + 2];
+				samples[i*4 + 2] = samples[i*4 + 1];
+				samples[i*4 + 1] = swapval;
+				break;
+			}
+		}
+	}
+
+	// --- Write WAV ---
+
+	wav_chunk_t whdr, wdhdr;
+	wav_fmtchunk_t fmtchunk;
+
+	// Setup data header
+	char did[4] = { 'd', 'a', 't', 'a' };
+	memcpy(&wdhdr.id, &did, 4);
+	wdhdr.size = header.size;
+
+	// Setup fmt chunk
+	char fid[4] = { 'f', 'm', 't', ' ' };
+	memcpy(&fmtchunk.header.id, &fid, 4);
+	fmtchunk.header.size = 16;
+	fmtchunk.tag = 1;
+	fmtchunk.channels = header.channels;
+	fmtchunk.samplerate = header.rate;
+	fmtchunk.datarate = header.rate * header.channels;
+	fmtchunk.blocksize = samplesize;
+	fmtchunk.bps = 8 * samplesize;
+
+	// Setup main header
+	char wid[4] = { 'R', 'I', 'F', 'F' };
+	memcpy(&whdr.id, &wid, 4);
+	whdr.size = wdhdr.size + fmtchunk.header.size + 8;
+
+	// Write chunks
+	out.write(&whdr, 8);
+	out.write("WAVE", 4);
+	out.write(&fmtchunk, sizeof(wav_fmtchunk_t));
+	out.write(&wdhdr, 8);
+	out.write(samples, header.size);
+
+	// Ensure data ends on even byte boundary
+	if (header.size % 2 != 0)
+		out.write("\0", 1);
+
+	delete[] samples;
+
+	return true;
+}

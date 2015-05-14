@@ -263,12 +263,14 @@ bool AudioEntryPanel::open()
 		Conversions::doomSndToWav(mcdata, convdata);
 	else if (entry->getType()->getFormat() == "snd_speaker")	// Doom PC Speaker Sound -> WAV
 		Conversions::spkSndToWav(mcdata, convdata);
-	else if (entry->getType()->getFormat() == "snd_audiot")	// AudioT PC Speaker Sound -> WAV
+	else if (entry->getType()->getFormat() == "snd_audiot")		// AudioT PC Speaker Sound -> WAV
 		Conversions::spkSndToWav(mcdata, convdata, true);
 	else if (entry->getType()->getFormat() == "snd_wolf")		// Wolfenstein 3D Sound -> WAV
 		Conversions::wolfSndToWav(mcdata, convdata);
 	else if (entry->getType()->getFormat() == "snd_voc")		// Creative Voice File -> WAV
 		Conversions::vocToWav(mcdata, convdata);
+	else if (entry->getType()->getFormat() == "snd_sun")		// Sun/NeXT Sound -> WAV
+		Conversions::auSndToWav(mcdata, convdata);
 	else if (entry->getType()->getFormat() == "snd_jaguar")		// Jaguar Doom Sound -> WAV
 		Conversions::jagSndToWav(mcdata, convdata);
 	else if (entry->getType()->getFormat() == "snd_bloodsfx")	// Blood Sound -> WAV
@@ -672,6 +674,15 @@ bool AudioEntryPanel::updateInfo()
 			size_t samples = READ_L16(mc, 2);
 			info += S_FMT("%d samples", samples);
 		}
+		else if (entry->getType() == EntryType::getType("snd_audiot"))
+		{
+			size_t samples = READ_L16(mc, 0);
+			info += S_FMT("%d samples", samples);
+		}
+		else if (entry->getType() == EntryType::getType("snd_sun"))
+			info += Audio::getSunInfo(mc);
+		else if (entry->getType() == EntryType::getType("snd_voc"))
+			info += Audio::getVocInfo(mc);
 		else if (entry->getType() == EntryType::getType("snd_wav"))
 			info += Audio::getWavInfo(mc);
 		else if (entry->getType() == EntryType::getType("snd_mp3"))
@@ -698,6 +709,11 @@ bool AudioEntryPanel::updateInfo()
 		info += theGMEPlayer->getInfo(subsong);
 		break;
 	case AUTYPE_OPL:
+		if (entry->getType() == EntryType::getType("opl_audiot"))
+		{
+			size_t samples = READ_L32(mc, 0);
+			info += S_FMT("%d samples", samples);
+		}
 		info += theOPLPlayer->getInfo();
 		break;
 	}

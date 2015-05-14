@@ -918,6 +918,141 @@ string Audio::getXMComments(MemChunk& mc)
 	return ret;
 }
 
+string Audio::getSunInfo(MemChunk& mc)
+{
+	size_t datasize = READ_B32(mc, 8);
+	size_t codec = READ_B32(mc, 12);
+	size_t samplerate = READ_B32(mc, 16);
+	size_t channels = READ_B32(mc, 20);
+
+	string format = "Format: ";
+	switch (codec)
+	{
+	case 1:		format += wxString::FromUTF8("\xCE\xBC-Law");	break;
+	case 2:	
+	case 3:	
+	case 4:	
+	case 5:		format += S_FMT("PCM (signed)");				break;
+	case 6:	
+	case 7:		format += S_FMT("PCM (float)");					break;
+	case 27:	format += S_FMT("a-Law");						break;
+	default:	format += S_FMT("Unknown (%u)", codec);			break;
+	}
+	string ret = "Mono";
+	if (channels == 2)
+		ret = "Stereo";
+	else if (channels > 2)
+		ret = S_FMT("%u channels", channels);
+	int bps = 1;
+	if (codec > 1 && codec < 6) bps = codec - 1;
+	else if (codec == 6 || codec == 7) bps = codec - 2;
+	size_t samples = datasize / bps;
+	ret += S_FMT(" %u-bit", bps * 8);
+	ret += S_FMT(" sound with %u samples at %u Hz\n%s\n", samples, samplerate, format);
+
+	return ret;
+}
+
+string Audio::getVocInfo(MemChunk& mc)
+{
+	int codec = -1;
+	int blockcount = 0;
+	size_t datasize = 0;
+	size_t i = 26, e = mc.getSize();
+	bool gotextra = false;
+	wav_fmtchunk_t fmtchunk;
+	while (i < e)
+	{
+		// Parses through blocks
+		uint8_t blocktype = mc[i];
+		size_t blocksize = READ_L24(mc, i+1);
+		i+=4;
+		if (i + blocksize > e && blocktype != 0)
+		{
+			return S_FMT("Invalid sound: VOC file cut abruptly in block %i", blockcount);
+		}
+		blockcount++;
+		switch (blocktype)
+		{
+		case 0: // Terminator, the rest should be ignored
+			i = e; break;
+		case 1: // Sound data
+			if (!gotextra && codec >= 0 && codec != mc[i+1])
+				return "Invalid sound: VOC files with different codecs are not supported";
+			else if (codec == -1)
+			{
+				fmtchunk.samplerate = 1000000/(256 - mc[i]);
+				fmtchunk.channels = 1;
+				fmtchunk.tag = 1;
+				codec = mc[i+1];
+			}
+			datasize += blocksize - 2;
+			break;
+		case 2: // Sound data continuation
+			if (codec == -1)
+				return "Invalid sound: Sound data without codec in VOC file";
+			datasize += blocksize;
+			break;
+		case 3: // Silence
+		case 4: // Marker
+		case 5: // Text
+		case 6: // Repeat start point
+		case 7: // Repeat end point
+			break;
+		case 8: // Extra info, overrides any following sound data codec info
+			if (codec != -1)
+			{
+				return "Invalid sound: Extra info block must precede sound data info block in VOC file";
+			}
+			else
+			{
+				fmtchunk.samplerate = 256000000/((mc[i+3] + 1) * (65536 - READ_L16(mc, i)));
+				fmtchunk.channels = mc[i+3] + 1;
+				fmtchunk.tag = 1;
+				codec = mc[i+2];
+			}
+			break;
+		case 9: // Sound data in new format
+			if (codec >= 0 && codec != READ_L16(mc, i+6))
+				return "Invalid sound: VOC files with different codecs are not supported";
+			else if (codec == -1)
+			{
+				fmtchunk.samplerate = READ_L32(mc, i);
+				fmtchunk.bps = mc[i+4];
+				fmtchunk.channels = mc[i+5];
+				fmtchunk.tag = 1;
+				codec = READ_L16(mc, i+6);
+			}
+			datasize += blocksize - 12;
+			break;
+		}
+		i += blocksize;
+	}
+	string format = "Format: ";
+	switch (codec)
+	{
+	case 0:		format += S_FMT("PCM (unsigned)"); 				break;
+	case 1:		format += S_FMT("4-to-8 ADPCM");				break;
+	case 2:		format += S_FMT("3-to-8 ADPCM");				break;
+	case 3:		format += S_FMT("2-to-8 ADPCM");				break;
+	case 4:		format += S_FMT("PCM (signed)");				break;
+	case 6:		format += S_FMT("a-Law");						break;
+	case 7:		format += wxString::FromUTF8("\xCE\xBC-Law");	break;
+	case 0x200:	format += S_FMT("4to-16 ADPCM");				break;
+	default:	format += S_FMT("Unknown (%u)", codec);			break;
+	}
+	string ret = "Mono";
+	if (fmtchunk.channels == 2)
+		ret = "Stereo";
+	else if (fmtchunk.channels > 2)
+		ret = S_FMT("%u channels", fmtchunk.channels);
+	size_t samples = datasize / (codec == 4 ? 2 : 1);
+	ret += S_FMT(" %u-bit", codec == 4 ? 16 : 8);
+	ret += S_FMT(" sound with %u samples at %u Hz\n%s\n", samples, fmtchunk.samplerate, format);
+	ret += S_FMT("%d blocks\n", blockcount);
+	return ret;
+}
+
 string Audio::getWavInfo(MemChunk& mc)
 {
 	const char* data = (const char*)mc.getData();

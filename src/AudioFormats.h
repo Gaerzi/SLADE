@@ -875,6 +875,39 @@ public:
 	}
 };
 
+class SunSoundDataFormat : public EntryDataFormat
+{
+public:
+	SunSoundDataFormat() : EntryDataFormat("snd_sun") {};
+	~SunSoundDataFormat() {}
+
+	int isThisFormat(MemChunk& mc)
+	{
+		// Check size
+		if (mc.getSize() > 32)
+		{
+			// Check for signature
+			if (mc[0] != '.' || mc[1] != 's' || mc[2] != 'n' || mc[3] != 'd')
+				return EDF_FALSE;
+			size_t offset = READ_B32(mc, 4);
+			size_t datasize = READ_B32(mc, 8);
+			if (offset < 24 || offset + datasize > mc.getSize())
+				return EDF_FALSE;
+			size_t format = READ_B32(mc, 12);
+			if (format < 2 || format > 7)
+				return EDF_FALSE;
+			size_t samplerate = READ_B32(mc, 16);
+			if (samplerate < 8000 || samplerate > 96000)
+				return EDF_FALSE;
+			size_t channels = READ_B32(mc, 20);
+			if (channels == 0 || channels > 2)
+				return EDF_FALSE;
+			return EDF_TRUE;
+		}
+		return EDF_FALSE;
+	}
+};
+
 class AYDataFormat : public EntryDataFormat
 {
 public:
