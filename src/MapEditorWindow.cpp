@@ -51,7 +51,6 @@
 #include "SplashWindow.h"
 #include "UndoManagerHistoryPanel.h"
 #include "MapBackupManager.h"
-#include "MapSpecials.h"
 #include <wx/aui/aui.h>
 
 
