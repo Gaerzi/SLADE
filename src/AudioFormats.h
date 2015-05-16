@@ -351,7 +351,7 @@ public:
 
 			// Check data size info
 			size_t datasize = READ_L16(mc, 0);
-			if (datasize > size)
+			if (datasize > size || (datasize != 0 && datasize + 90 < size))
 				return EDF_FALSE;
 
 			// So-called type 1 begins with data size, type 0 doesn't.
@@ -466,7 +466,7 @@ public:
 			mc.read(&samplerate, 2);
 			mc.read(&samples, 4);
 
-			if (head == 3 && samples <= (mc.getSize() - 8) && samples > 4 && samplerate >= 11025)
+			if (head == 3 && samples <= (mc.getSize() - 8) && samples > 4 && samplerate >= 8000)
 				return EDF_TRUE;
 		}
 
@@ -496,7 +496,7 @@ public:
 			head = wxUINT16_SWAP_ON_BE(head);
 			samples = wxUINT32_SWAP_ON_BE(samples);
 
-			if (head == 0x300 && samples <= (mc.getSize() - 8) && samples > 4)
+			if (head == 0x300 && samples <= (mc.getSize() - 8) && samples > 4 && samplerate >= 8000)
 				return EDF_TRUE;
 		}
 
