@@ -45,6 +45,7 @@
 #include "UndoManagerHistoryPanel.h"
 #include "ArchivePanel.h"
 #include "cl_notebook_art/cl_aui_notebook_art.h"
+#include "Misc.h"
 #include <wx/aboutdlg.h>
 #include <wx/dnd.h>
 #include <wx/statline.h>
@@ -104,7 +105,9 @@ MainWindow::MainWindow()
 	if (mw_maximized) Maximize();
 	setupLayout();
 	SetDropTarget(new MainWindowDropTarget());
+#ifdef USE_WEBVIEW_STARTPAGE
 	docs_page = NULL;
+#endif
 }
 
 /* MainWindow::~MainWindow
@@ -631,6 +634,8 @@ bool MainWindow::exitProgram()
 	//main_window_layout = m_mgr->SavePerspective();
 	saveLayout();
 	mw_maximized = IsMaximized();
+	if (!IsMaximized())
+		Misc::setWindowInfo(id, GetSize().x, GetSize().y, GetPosition().x, GetPosition().y);
 
 	// Save selected palette
 	global_palette = palette_chooser->GetStringSelection();
@@ -716,6 +721,7 @@ void MainWindow::openEntry(ArchiveEntry* entry)
 /* MainWindow::openDocs
  * Opens [entry] in its own tab
  *******************************************************************/
+#ifdef USE_WEBVIEW_STARTPAGE
 void MainWindow::openDocs(string page_name)
 {
 	// Create docs page control if needed
@@ -752,6 +758,7 @@ void MainWindow::openDocs(string page_name)
 	docs_page->Layout();
 	docs_page->Update();
 }
+#endif
 
 /* MainWindow::handleAction
  * Handles the action [id]. Returns true if the action was handled,

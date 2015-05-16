@@ -34,8 +34,6 @@
 #include "ArchiveManagerPanel.h"
 #include "ArchiveManager.h"
 #include "ArchivePanel.h"
-#include "ZipArchive.h"
-#include "Dialogs/Preferences/BaseResourceArchivesPanel.h"
 #include "TextureXEditor.h"
 #include "SplashWindow.h"
 #include "MainWindow.h"
@@ -957,9 +955,9 @@ bool ArchiveManagerPanel::closeAll()
 {
 	asked_save_unchanged = false;
 
-	for (int a = 0; a < theArchiveManager->numArchives(); a++)
+	while (theArchiveManager->numArchives() > 0)
 	{
-		if (!closeArchive(theArchiveManager->getArchive(a)))
+		if (!closeArchive(theArchiveManager->getArchive(0)))
 			return false;
 	}
 
@@ -1202,8 +1200,11 @@ bool ArchiveManagerPanel::closeArchive(Archive* archive)
 	if (!archive)
 		return false;
 
-	return beforeCloseArchive(archive)
-		&& theArchiveManager->closeArchive(archive);
+	checked_dir_archive_changes = true;
+	bool ok = beforeCloseArchive(archive) && theArchiveManager->closeArchive(archive);
+	checked_dir_archive_changes = false;
+
+	return ok;
 }
 
 /* ArchiveManagerPanel::getSelectedArchives
