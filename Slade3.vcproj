@@ -891,6 +891,14 @@
 						>
 					</File>
 					<File
+						RelativePath=".\src\DataEntryPanel.cpp"
+						>
+					</File>
+					<File
+						RelativePath=".\src\DataEntryPanel.h"
+						>
+					</File>
+					<File
 						RelativePath=".\src\DefaultEntryPanel.cpp"
 						>
 					</File>
