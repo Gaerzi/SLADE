@@ -589,6 +589,14 @@ void MainApp::initActions()
 	// MapEntryPanel
 	new SAction("pmap_open_text", "Edit Level Header Script", "e_text", "Open the map header as text (to edit fragglescript, etc.)");
 
+	// DataEntryPanel
+	new SAction("data_add_row", "Add Row", "t_plus", "Add a new row (after the currently selected row");
+	new SAction("data_delete_row", "Delete Row(s)", "t_close", "Delete the currently selected row(s)");
+	new SAction("data_cut_row", "Cut Row(s)", "t_cut", "Cut the currently selected row(s)", "Ctrl+X");
+	new SAction("data_copy_row", "Copy Row(s)", "t_copy", "Copy the currently selected row(s)", "Ctrl+C");
+	new SAction("data_paste_row", "Paste Row(s)", "t_paste", "Paste at the currently selected row", "Ctrl+V");
+	new SAction("data_change_value", "Change Value...", "t_rename", "Change the value of the selected cell(s)");
+
 	// Map Editor Window
 	new SAction("mapw_save", "&Save Map Changes", "t_save", "Save any changes to the current map", "Ctrl+S");
 	new SAction("mapw_saveas", "Save Map &As...", "t_saveas", "Save the map to a new wad archive", "Ctrl+Shift+S");
