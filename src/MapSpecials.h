@@ -14,10 +14,16 @@ namespace MapSpecials
 	};
 
 	void	processMapSpecials(SLADEMap* map);
-	void	applySectorColours(SLADEMap* map);
+	void	processLineSpecial(MapLine* line);
+
+	bool	getTagColour(int tag, rgba_t* colour);
+	bool	tagColoursSet();
+	void	updateTaggedSectors(SLADEMap* map);
 
 	// ZDoom
 	void	processZDoomMapSpecials(SLADEMap* map);
+	void	processZDoomLineSpecial(MapLine* line);
+	void	setupPlaneAlignSlope(MapLine* line, bool floor, bool front);
 	void	processACSScripts(ArchiveEntry* entry);
 }
 

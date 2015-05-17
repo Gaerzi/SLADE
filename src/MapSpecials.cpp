@@ -34,6 +34,7 @@
 #include "MapSpecials.h"
 #include "GameConfiguration.h"
 #include "Tokenizer.h"
+#include "MathStuff.h"
 #include <wx/colour.h>
 
 
@@ -60,20 +61,56 @@ void MapSpecials::processMapSpecials(SLADEMap* map)
 		processZDoomMapSpecials(map);
 }
 
-/* MapSpecials::applySectorColours
- * Apply sector colours as parsed from scripts
+/* MapSpecials::processLineSpecial
+ * Process a line's special, depending on the current game/port
  *******************************************************************/
-void MapSpecials::applySectorColours(SLADEMap* map)
+void MapSpecials::processLineSpecial(MapLine* line)
+{
+	if (theGameConfiguration->currentPort() == "zdoom")
+		processZDoomLineSpecial(line);
+}
+
+/* MapSpecials::getTagColour
+ * Sets [colour] to the parsed colour for [tag]. Returns true if the
+ * tag has a colour, false otherwise
+ *******************************************************************/
+bool MapSpecials::getTagColour(int tag, rgba_t* colour)
+{
+	for (unsigned a = 0; a < sector_colours.size(); a++)
+	{
+		if (sector_colours[a].tag == tag)
+		{
+			colour->r = sector_colours[a].colour.r;
+			colour->g = sector_colours[a].colour.g;
+			colour->b = sector_colours[a].colour.b;
+			colour->a = 255;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/* MapSpecials::tagColoursSet
+ * Returns true if any sector tags should be coloured
+ *******************************************************************/
+bool MapSpecials::tagColoursSet()
+{
+	return !(sector_colours.empty());
+}
+
+/* MapSpecials::updateTaggedSecors
+ * Updates any sectors with tags that are affected by any processed
+ * specials/scripts
+ *******************************************************************/
+void MapSpecials::updateTaggedSectors(SLADEMap* map)
 {
 	for (unsigned a = 0; a < sector_colours.size(); a++)
 	{
 		vector<MapSector*> tagged;
 		map->getSectorsByTag(sector_colours[a].tag, tagged);
-		wxColour wxcol(sector_colours[a].colour.r, sector_colours[a].colour.g, sector_colours[a].colour.b, 255);
-		uint32_t col_int = wxcol.GetRGBA();
-
 		for (unsigned s = 0; s < tagged.size(); s++)
-			tagged[s]->setIntProperty("lightcolor", col_int);
+			tagged[s]->setModified();
 	}
 }
 
@@ -85,40 +122,138 @@ void MapSpecials::processZDoomMapSpecials(SLADEMap* map)
 {
 	// Line specials
 	for (unsigned a = 0; a < map->nLines(); a++)
+		processZDoomLineSpecial(map->getLine(a));
+}
+
+/* MapSpecials::processZDoomLineSpecial
+ * Process ZDoom line special
+ *******************************************************************/
+void MapSpecials::processZDoomLineSpecial(MapLine* line)
+{
+	// Get special
+	int special = line->getSpecial();
+	if (special == 0)
+		return;
+
+	// Get parent map
+	SLADEMap* map = line->getParentMap();
+
+	// Get args
+	int args[5];
+	for (unsigned arg = 0; arg < 5; arg++)
+		args[arg] = line->intProperty(S_FMT("arg%d", arg));
+
+	// --- TranslucentLine ---
+	if (special == 208)
 	{
-		// Get special
-		int special = map->getLine(a)->getSpecial();
-		if (special == 0)
-			continue;
+		// Get tagged lines
+		vector<MapLine*> tagged;
+		if (args[0] > 0)
+			map->getLinesById(args[0], tagged);
+		else
+			tagged.push_back(line);
 
 		// Get args
-		int args[5];
-		for (unsigned arg = 0; arg < 5; arg++)
-			args[arg] = map->getLine(a)->intProperty(S_FMT("arg%d", arg));
+		double alpha = (double)args[1] / 255.0;
+		string type = (args[2] == 0) ? "translucent" : "add";
 
-		// --- TranslucentLine ---
-		if (special == 208)
+		// Set transparency
+		for (unsigned l = 0; l < tagged.size(); l++)
 		{
-			// Get tagged lines
-			vector<MapLine*> tagged;
-			if (args[0] > 0)
-				map->getLinesById(args[0], tagged);
-			else
-				tagged.push_back(map->getLine(a));
+			tagged[l]->setFloatProperty("alpha", alpha);
+			tagged[l]->setStringProperty("renderstyle", type);
 
-			// Get args
-			double alpha = (double)args[1] / 255.0;
-			string type = (args[2] == 0) ? "translucent" : "add";
-
-			// Set transparency
-			for (unsigned l = 0; l < tagged.size(); l++)
-			{
-				tagged[l]->setFloatProperty("alpha", alpha);
-				tagged[l]->setStringProperty("renderstyle", type);
-
-				LOG_MESSAGE(3, S_FMT("Line %d translucent: (%d) %1.2f, %s", tagged[l]->getIndex(), args[1], alpha, CHR(type)));
-			}
+			LOG_MESSAGE(3, S_FMT("Line %d translucent: (%d) %1.2f, %s", tagged[l]->getIndex(), args[1], alpha, CHR(type)));
 		}
+	}
+
+	// --- Plane_Align ---
+	if (special == 181)
+	{
+		// Get tagged lines
+		vector<MapLine*> tagged;
+		if (args[2] > 0)
+			map->getLinesById(args[2], tagged);
+		else
+			tagged.push_back(line);
+
+		// Setup slopes
+		for (unsigned a = 0; a < tagged.size(); a++)
+		{
+			// Floor
+			if (args[0] == 1 || args[0] == 2)
+				setupPlaneAlignSlope(tagged[a], true, (args[0] == 1));
+
+			// Ceiling
+			if (args[1] == 1 || args[1] == 2)
+				setupPlaneAlignSlope(tagged[a], false, (args[1] == 1));
+		}
+	}
+}
+
+/* MapSpecials::setupPlaneAlignSlope
+ * Calculates the floor/ceiling plane for the sector affected by
+ * [line]'s Plane_Align special
+ *******************************************************************/
+void MapSpecials::setupPlaneAlignSlope(MapLine* line, bool floor, bool front)
+{
+	LOG_MESSAGE(3, "Line %d %s slope, %s side", line->getIndex(), floor ? "floor" : "ceiling", front ? "front" : "back");
+
+	// Get sectors
+	MapSector* s1 = line->frontSector();
+	MapSector* s2 = line->backSector();
+	if (!s1 || !s2)
+	{
+		LOG_MESSAGE(1, "Line %d is not two-sided, Plane_Align not processed", line->getIndex());
+		return;
+	}
+
+	// Get origin point
+	fpoint3_t origin(line->getPoint(MOBJ_POINT_MID).x, line->getPoint(MOBJ_POINT_MID).y, 0);
+	if (floor)
+		origin.z = front ? s2->getFloorHeight() : s1->getFloorHeight();
+	else
+		origin.z = front ? s2->getCeilingHeight() : s1->getCeilingHeight();
+
+	// Get intersection line and (2d) point
+	fpoint2_t dir_2d = line->frontVector();
+	if (front)
+	{
+		dir_2d.x = -dir_2d.x;
+		dir_2d.y = -dir_2d.y;
+	}
+	double ix, iy;
+	MapLine* intersect = line->getParentMap()->lineVectorIntersect(line, front, ix, iy);
+	if (!intersect)
+	{
+		LOG_MESSAGE(1, "Error processing Plane_Align for line %d - no opposite end found", line->getIndex());
+		return;
+	}
+
+	// Determine end point
+	fpoint3_t end(ix, iy, 0);
+	if (floor)
+		end.z = front ? s1->getFloorHeight() : s2->getFloorHeight();
+	else
+		end.z = front ? s1->getCeilingHeight() : s2->getCeilingHeight();
+
+	// Calculate slope plane
+	plane_t plane;
+	if (front)
+	{
+		plane = MathStuff::planeFromTriangle(end, fpoint3_t(line->x1(), line->y1(), origin.z), fpoint3_t(line->x2(), line->y2(), origin.z));
+		if (floor)
+			s1->setFloorPlane(plane);
+		else
+			s1->setCeilingPlane(plane);
+	}
+	else
+	{
+		plane = MathStuff::planeFromTriangle(end, fpoint3_t(line->x1(), line->y1(), origin.z), fpoint3_t(line->x2(), line->y2(), origin.z));
+		if (floor)
+			s2->setFloorPlane(plane);
+		else
+			s2->setCeilingPlane(plane);
 	}
 }
 
@@ -130,12 +265,15 @@ void MapSpecials::processACSScripts(ArchiveEntry* entry)
 {
 	sector_colours.clear();
 
+	if (!entry || entry->getSize() == 0)
+		return;
+
 	Tokenizer tz;
 	tz.setSpecialCharacters(";,:|={}/()");
 	tz.openMem(entry->getData(), entry->getSize(), "ACS Scripts");
 
 	string token = tz.getToken();
-	while (!(token.IsEmpty() && !tz.quotedString()))
+	while (!tz.isAtEnd())
 	{
 		if (S_CMPNOCASE(token, "script"))
 		{
