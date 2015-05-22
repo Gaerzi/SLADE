@@ -471,7 +471,7 @@ bool AudioEntryPanel::openMod(MemChunk& data)
 		btn_play->Enable();
 		btn_pause->Enable();
 		btn_stop->Enable();
-		setAudioDuration(mod.getLength());
+		setAudioDuration(mod.getDuration().asMilliseconds());
 
 		return true;
 	}

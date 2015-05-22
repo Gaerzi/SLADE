@@ -52,6 +52,7 @@
 #include "UndoManagerHistoryPanel.h"
 #include "MapBackupManager.h"
 #include "MapSpecials.h"
+#include "Misc.h"
 #include <wx/aui/aui.h>
 
 

@@ -182,7 +182,7 @@ wxAuiTabArt* SAuiTabArt::Clone()
 
 void SAuiTabArt::DrawBorder(wxDC& dc, wxWindow* wnd, const wxRect& rect)
 {
-	int i, border_width = GetBorderWidth(wnd);
+	int /*i,*/ border_width = GetBorderWidth(wnd);
 
 	wxRect theRect(rect);
 	//for (i = 0; i < border_width; ++i)

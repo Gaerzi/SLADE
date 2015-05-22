@@ -295,16 +295,15 @@ public:
 		if (mc.getSize() > 1084)
 		{
 			// Check format; note: byte 951 is used by NoiseTracker to indicate restart byte so it can be any value
-			if (mc[950] >= 1 && mc[950] <= 128 /*&& (mc[951] & 127) == 127*/)
+			if (mc[950] >= 0 && mc[950] <= 129 /*&& (mc[951] & 127) == 127*/)
 			{
 				if ((mc[1080] == 'M' && mc[1081] == '.' && mc[1082] == 'K' && mc[1083] == '.') ||
 				        (mc[1080] == 'M' && mc[1081] == '!' && mc[1082] == 'K' && mc[1083] == '!') ||
 				        (mc[1080] == 'F' && mc[1081] == 'L' && mc[1082] == 'T' && mc[1083] == '4') ||
 				        (mc[1080] == 'F' && mc[1081] == 'L' && mc[1082] == 'T' && mc[1083] == '8') ||
-				        (mc[1081] == 'C' && mc[1082] == 'H' && mc[1083] == 'N'))
-				{
+						(mc[1080] >= '1' && mc[1080] <= '9' && mc[1081] >= '0' && mc[1081] <= '9' && mc[1082] == 'C' && mc[1083] == 'H') ||
+				        (mc[1080] >= '2' && mc[1080] <= '8' && mc[1081] == 'C' && mc[1082] == 'H' && mc[1083] == 'N'))
 					return EDF_TRUE;
-				}
 			}
 		}
 
@@ -376,7 +375,7 @@ public:
 
 			// Check data size info
 			size_t datasize = READ_L16(mc, 0);
-			if (datasize > size || (datasize != 0 && datasize + 90 < size))
+			if (datasize > size || (datasize != 0 && datasize + 92 < size))
 				return EDF_FALSE;
 
 			// So-called type 1 begins with data size, type 0 doesn't.

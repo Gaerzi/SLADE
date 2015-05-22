@@ -7,7 +7,7 @@
 
 #undef Status
 #include <SFML/Audio.hpp>
-#include "sfMod/sfMod.h"
+#include "ModMusic.h"
 #include "GMEPlayer.h"
 #include "OPLPlayer.h"
 
@@ -36,7 +36,7 @@ private:
 	sf::SoundBuffer*	sound_buffer;
 	sf::Sound			sound;
 	sf::Music			music;
-	sfmod::Mod			mod;
+	ModMusic			mod;
 
 	enum
 	{
