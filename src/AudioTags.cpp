@@ -1364,3 +1364,198 @@ string Audio::getWavInfo(MemChunk& mc)
 	return ret;
 }
 
+string Audio::getRmidInfo(MemChunk& mc)
+{
+	const char* data = (const char*)mc.getData();
+	const uint8_t* udata = (const uint8_t*)data;
+	const wav_chunk_t* head = (const wav_chunk_t*)data;
+	const wav_chunk_t* temp = NULL;
+	const wav_chunk_t* cue  = NULL;
+	size_t s = 12;
+
+	string chunksfound = "Chunks: ";
+	string ret = "\n";
+
+	// Find data chunks
+	while (s + 8 < mc.getSize())
+	{
+		temp = (const wav_chunk_t*) (data + s);
+		if (temp->id[0] == 'L' && temp->id[1] == 'I' && temp->id[2] == 'S' && temp->id[3] == 'T')
+			chunksfound += S_FMT("%s_%c%c%c%c, ", string::From8BitData(temp->id, 4), data[s+8], data[s+9], data[s+10], data[s+11]);
+		else chunksfound += S_FMT("%s, ", string::From8BitData(temp->id, 4));
+		
+		if (temp->id[0] == 'c' && temp->id[1] == 'u' && temp->id[2] == 'e' && temp->id[3] == ' ')
+			cue = temp;
+		size_t offset = 8 + wxUINT32_SWAP_ON_BE(temp->size);
+		if (offset % 2)
+			++offset;
+		s += offset;
+	}
+	chunksfound.RemoveLast(2);
+
+	// Find data chunks
+	s = 12;
+	while (s + 8 < mc.getSize())
+	{
+		temp = (const wav_chunk_t*) (data + s);
+		size_t tempsize = wxUINT32_SWAP_ON_BE(temp->size);
+		size_t offset = s + 8;
+		size_t end = offset + tempsize;
+		s = end;
+		if (s % 2)
+			s++;
+		// RIFF Data Listing
+		if (temp->id[0] == 'L' && temp->id[1] == 'I' && temp->id[2] == 'S' && temp->id[3] == 'T' && tempsize > 4)
+		{
+			// LIST INFO chunk
+			if (mc[offset] == 'I' && mc[offset+1] == 'N' && mc[offset+2] == 'F' && mc[offset+3] == 'O')
+			{
+				string liststr = "Information:\n";
+				offset += 4;
+				while (offset + 8 < end)
+				{
+					const wav_chunk_t* chunk = (const wav_chunk_t*)(data + offset);
+					size_t chsz = wxUINT32_SWAP_ON_BE(chunk->size);
+					string tagname = S_FMT("%s: ", string::From8BitData(chunk->id, 4));
+					offset += 8;
+					if (offset + chsz > end)
+						break;
+					else if (chunk->id[0] == 'I')
+					{
+						if (chunk->id[1] == 'A' && chunk->id[2] == 'R')
+						{
+							if (chunk->id[3] == 'L')			tagname = "Archival Location: ";
+							else if (chunk->id[3] == 'T')		tagname = "Artist: ";
+						}
+						else if (chunk->id[1] == 'C')
+						{
+							if (chunk->id[2] == 'M' && chunk->id[3] == 'S')			tagname = "Commissioned: ";
+							else if (chunk->id[2] == 'M' && chunk->id[3] == 'T')	tagname = "Comment: ";
+							else if (chunk->id[2] == 'O' && chunk->id[3] == 'P')	tagname = "Copyright: ";
+							else if (chunk->id[2] == 'R' && chunk->id[3] == 'D')	tagname = "Date Created: ";
+							else if (chunk->id[2] == 'R' && chunk->id[3] == 'P')	tagname = "Cropped: ";
+						}
+						else if (chunk->id[1] == 'E' && chunk->id[2] == 'N' && chunk->id[3] == 'G')	tagname = "Engineer: ";
+						else if (chunk->id[1] == 'G' && chunk->id[2] == 'N' && chunk->id[3] == 'R')	tagname = "Genre: ";
+						else if (chunk->id[1] == 'K' && chunk->id[2] == 'E' && chunk->id[3] == 'Y')	tagname = "Keywords: ";
+						else if (chunk->id[1] == 'M' && chunk->id[2] == 'E' && chunk->id[3] == 'D')	tagname = "Medium: ";
+						else if (chunk->id[1] == 'N' && chunk->id[2] == 'A' && chunk->id[3] == 'M')	tagname = "Title: ";
+						else if (chunk->id[1] == 'P' && chunk->id[2] == 'R' && chunk->id[3] == 'D')	tagname = "Product: ";
+						else if (chunk->id[1] == 'S' && chunk->id[2] == 'B' && chunk->id[3] == 'J')	tagname = "Subject: ";
+						else if (chunk->id[1] == 'S' && chunk->id[2] == 'F' && chunk->id[3] == 'T')	tagname = "Software: ";
+						else if (chunk->id[1] == 'S' && chunk->id[2] == 'R' && chunk->id[3] == 'C')	tagname = "Source: ";
+						else if (chunk->id[1] == 'S' && chunk->id[2] == 'R' && chunk->id[3] == 'F')	tagname = "Source Form: ";
+						else if (chunk->id[1] == 'T' && chunk->id[2] == 'C' && chunk->id[3] == 'H')	tagname = "Technician: ";
+					}
+					liststr += S_FMT("%s%s\n", tagname, string::From8BitData(data + offset, chsz));
+					offset += chsz;
+					if (offset % 2)
+						offset++;
+				}
+				ret += S_FMT("%s\n", liststr);
+			}
+			// LIST adtl chunk
+			else if (mc[offset] == 'a' && mc[offset+1] == 'd' && mc[offset+2] == 't' && mc[offset+3] == 'l')
+			{
+				// We need to have a cue chunk, wav specs say there can be only one at most
+				if (cue && wxUINT32_SWAP_ON_BE(cue->size) >= 4)
+				{
+					size_t cueofs = 8 + (const char *)cue - data;
+					size_t cuesize = wxUINT32_SWAP_ON_BE(cue->size);
+					size_t numcuepoints = READ_L32(udata, cueofs);
+					bool * alreadylisted = new bool[numcuepoints];
+					memset(alreadylisted, false, numcuepoints * sizeof(bool));
+					if (cuesize >= 4 + numcuepoints * sizeof(wav_cue_t))
+					{
+						string liststr = S_FMT("Associated Data List:\n%d cue points\n", numcuepoints);
+						const wav_cue_t * cuepoints = (const wav_cue_t *)(data + cueofs + 4);
+						size_t ioffset = offset + 4;
+						while (ioffset < end)
+						{
+							const wav_chunk_t * note = (const wav_chunk_t *)(data + ioffset);
+							size_t isize = wxUINT32_SWAP_ON_BE(note->size);
+							ioffset += 8;
+							size_t cuepoint = READ_L32(udata, ioffset);
+							int cpindex = -1;
+							for (size_t i = 0; i < numcuepoints; ++i)
+							{
+								if (wxUINT32_SWAP_ON_BE(cuepoints[i].dwName) == cuepoint)
+								{
+									cpindex = i;
+									break;
+								}
+							}
+							if (cpindex >= 0 && !alreadylisted[cpindex])
+							{
+								liststr += S_FMT("Cue point %d: sample %d from %s, offset %d, block offset %d, chunk %d\n",
+									cuepoint, wxUINT32_SWAP_ON_BE(cuepoints[cpindex].dwPosition),
+									string::From8BitData(cuepoints[cpindex].fccChunk, 4), 
+									wxUINT32_SWAP_ON_BE(cuepoints[cpindex].dwSampleOffset), 
+									wxUINT32_SWAP_ON_BE(cuepoints[cpindex].dwBlockStart), 
+									wxUINT32_SWAP_ON_BE(cuepoints[cpindex].dwChunkStart));
+								alreadylisted[cpindex] = true;
+							}
+							if (note->id[0] == 'l' && note->id[1] == 'a' && note->id[2] == 'b' && note->id[3] == 'l')
+							{
+								string content = string::From8BitData(data+ioffset+4, isize-4); content.Trim();
+								liststr += S_FMT("Cue point %d label: %s\n", cuepoint, content);
+							}
+							else if (note->id[0] == 'l' && note->id[1] == 't' && note->id[2] == 'x' && note->id[3] == 't')
+							{
+								liststr += S_FMT("Cue point %d: sample length %d, purpose %s\n", cuepoint, READ_L32(udata, (ioffset+4)),
+									string::From8BitData(data+ioffset+8, 4));
+							}
+							else if (note->id[0] == 'n' && note->id[1] == 'o' && note->id[2] == 't' && note->id[3] == 'e')
+							{
+								string content = string::From8BitData(data+ioffset+4, isize-4); content.Trim();
+								liststr += S_FMT("Cue point %d note: %s\n", cuepoint, content);
+							}
+
+							ioffset += isize;
+						}
+						ret += S_FMT("%s\n", liststr);
+					}
+				}
+			}
+		}
+		// Other ASCII metadata, if they aren't too big
+		else if (tempsize > 4 && tempsize < 8192)
+		{
+			bool pure_ascii = true;
+			bool zerochar = false;
+			for (size_t i = 0; pure_ascii && i < tempsize; ++i)
+			{
+				// Allow them to have several substrings separated by single null bytes
+				if (udata[offset+i] == 0)
+				{
+					if (zerochar == true)
+					{
+						pure_ascii = false;
+						break;
+					}
+					zerochar = true;
+				}
+				// Only accept CR, LF, tabs, and printable characters
+				else if ((udata[offset+i] < 0x20 && udata[offset+i] != 9 && udata[offset+i] != 10 && udata[offset+i] != 13) || udata[offset+i] > 0x7E)
+				{
+					pure_ascii = false;
+					break;
+				}
+				else zerochar = false;
+			}
+			if (pure_ascii)
+			{
+				char * asciidata = new char[tempsize];
+				memcpy(asciidata, data + offset, tempsize);
+				for (size_t i = 0; i < tempsize - 1; ++i)
+					if (asciidata[i] == 0)
+						asciidata[i] = '\n';
+
+				ret += S_FMT("%s chunk:\n%s\n\n", string::From8BitData(temp->id, 4), string::From8BitData(asciidata, tempsize));
+				delete[] asciidata;
+			}
+		}
+	}
+	ret += S_FMT("%s\n", chunksfound);
+	return ret;
+}

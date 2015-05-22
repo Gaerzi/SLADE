@@ -262,6 +262,7 @@ void EntryDataFormat::initBuiltinFormats()
 	new HMIDataFormat();
 	new HMPDataFormat();
 	new GMIDDataFormat();
+	new RMIDDataFormat();
 	new ITModuleDataFormat();
 	new XMModuleDataFormat();
 	new S3MModuleDataFormat();

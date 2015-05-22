@@ -60,7 +60,7 @@ size_t checkForTags(MemChunk& mc)
 class MUSDataFormat : public EntryDataFormat
 {
 public:
-	MUSDataFormat() : EntryDataFormat("mus") {};
+	MUSDataFormat() : EntryDataFormat("midi_mus") {};
 	~MUSDataFormat() {}
 
 	int isThisFormat(MemChunk& mc)
@@ -80,7 +80,7 @@ public:
 class MIDIDataFormat : public EntryDataFormat
 {
 public:
-	MIDIDataFormat() : EntryDataFormat("midi") {};
+	MIDIDataFormat() : EntryDataFormat("midi_smf") {};
 	~MIDIDataFormat() {}
 
 	int isThisFormat(MemChunk& mc)
@@ -100,7 +100,7 @@ public:
 class XMIDataFormat : public EntryDataFormat
 {
 public:
-	XMIDataFormat() : EntryDataFormat("xmi") {};
+	XMIDataFormat() : EntryDataFormat("midi_xmi") {};
 	~XMIDataFormat() {}
 
 	int isThisFormat(MemChunk& mc)
@@ -128,7 +128,7 @@ public:
 class HMIDataFormat : public EntryDataFormat
 {
 public:
-	HMIDataFormat() : EntryDataFormat("hmi") {};
+	HMIDataFormat() : EntryDataFormat("midi_hmi") {};
 	~HMIDataFormat() {}
 
 	int isThisFormat(MemChunk& mc)
@@ -149,7 +149,7 @@ public:
 class HMPDataFormat : public EntryDataFormat
 {
 public:
-	HMPDataFormat() : EntryDataFormat("hmp") {};
+	HMPDataFormat() : EntryDataFormat("midi_hmp") {};
 	~HMPDataFormat() {}
 
 	int isThisFormat(MemChunk& mc)
@@ -170,7 +170,7 @@ public:
 class GMIDDataFormat : public EntryDataFormat
 {
 public:
-	GMIDDataFormat() : EntryDataFormat("gmid") {};
+	GMIDDataFormat() : EntryDataFormat("midi_gmid") {};
 	~GMIDDataFormat() {}
 
 	int isThisFormat(MemChunk& mc)
@@ -181,6 +181,31 @@ public:
 			// Check for GMID header: MIDI followed by BE data size
 			if (mc[0] == 'M' && mc[1] == 'I' && mc[2] == 'D' && mc[3] == 'I' &&
 			        ((READ_B32(mc, 4) + 8) == mc.getSize()))
+				return EDF_TRUE;
+		}
+
+		return EDF_FALSE;
+	}
+};
+
+class RMIDDataFormat : public EntryDataFormat
+{
+public:
+	RMIDDataFormat() : EntryDataFormat("midi_rmid") {};
+	~RMIDDataFormat() {}
+
+	int isThisFormat(MemChunk& mc)
+	{
+		// Check size
+		if (mc.getSize() > 36)
+		{
+			// Check for RIFF RMID header
+			if (mc[0] == 'R' && mc[1] == 'I' && mc[2] == 'F' && mc[3] == 'F' &&
+				mc[8] == 'R' && mc[9] == 'M' && mc[10] == 'I' && mc[11] == 'D' &&
+				mc[12] == 'd' && mc[13] == 'a' && mc[14] == 't' && mc[15] == 'a' &&
+				mc[20] == 'M' && mc[21] == 'T' && mc[22] == 'h' && mc[23] == 'd' &&
+			        (READ_L32(mc, 4) + 8 == mc.getSize()) && 
+					(READ_L32(mc, 16) < READ_L32(mc, 4)))
 				return EDF_TRUE;
 		}
 

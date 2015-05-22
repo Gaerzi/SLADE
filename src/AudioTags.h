@@ -15,6 +15,7 @@ namespace Audio
 	string		getWavInfo(MemChunk& mc);
 	string		getVocInfo(MemChunk& mc);
 	string		getSunInfo(MemChunk& mc);
+	string		getRmidInfo(MemChunk& mc);
 }
 
 #endif // __AUDIOTAGS_H__

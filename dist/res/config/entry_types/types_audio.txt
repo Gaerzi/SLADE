@@ -10,55 +10,64 @@ entry_types
 		detectable = 0;
 	}
 
-	mus : music
+	midi_mus : music
 	{
 		name = "Music (MUS)";
-		format = mus;
+		format = midi_mus;
 		export_ext = "mus";
 		editor = audio;
 	}
 
-	midi : music
+	midi_smf : music
 	{
 		name = "Music (MIDI)";
-		format = midi;
+		format = midi_smf;
 		export_ext = "mid";
 		editor = audio;
 	}
 
-	xmi : music
+	midi_xmi : music
 	{
 		name = "Music (XMI)";
-		format = xmi;
+		format = midi_xmi;
 		export_ext = "xmi";
 		reliability = 100;
 		editor = audio;
 	}
 
-	hmi : music
+	midi_hmi : music
 	{
 		name = "Music (HMI)";
-		format = hmi;
+		format = midi_hmi;
 		export_ext = "hmi";
 		reliability = 100;
 		editor = audio;
 	}
 
-	hmp : music
+	midi_hmp : music
 	{
 		name = "Music (HMP)";
-		format = hmp;
+		format = midi_hmp;
 		export_ext = "hmp";
 		reliability = 100;
 		editor = audio;
 	}
 
-	gmid : music
+	midi_gmid : music
 	{
 		name = "Music (GMID)";
-		format = gmid;
+		format = midi_gmid;
 		export_ext = "gmd";
 		reliability = 75;
+		editor = audio;
+	}
+	
+	midi_rmid : music
+	{
+		name = "Music (RMID)";
+		format = midi_rmid;
+		export_ext = "rmi";
+		reliability = 100;
 		editor = audio;
 	}
 

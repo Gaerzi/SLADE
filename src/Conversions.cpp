@@ -731,6 +731,48 @@ bool Conversions::gmidToMidi(MemChunk& in, MemChunk& out)
 	return true;
 }
 
+/* Conversions::rmidToMidi
+ * RMID file to Standard MIDI File
+ *******************************************************************/
+bool Conversions::rmidToMidi(MemChunk& in, MemChunk& out)
+{
+	// Skip beginning of file and look for MThd chunk
+	// (the standard MIDI header)
+	size_t size = in.getSize();
+	if (size < 36)
+		return false;
+	if (in[0] != 'R' && in[1] != 'I' && in[2] != 'F' && in[3] != 'F' &&
+	        ((READ_L32(in, 4) + 8) != size))
+		return false;
+
+	size_t offset = 12;
+	size_t datasize = 0;
+	bool notfound = true;
+	while (notfound)
+	{
+		if (offset + 20 >  size)
+			return false;
+		// Look for header
+		if (in[offset] == 'd' && in[offset+1] == 'a' && in[offset+2] == 't' && in[offset+3] == 'a' &&
+			in[offset+8] == 'M' && in[offset+9] == 'T' && in[offset+10] == 'h' && in[offset+11] == 'd')
+		{
+			notfound = false;
+			datasize = READ_L32(in, offset+4);
+			offset += 8;
+		}
+		else
+			offset += (READ_L32(in, offset+4) + 8);
+	}
+
+	// Write the rest of the file
+	if (offset + datasize <= size)
+	{
+		out.write(in.getData() + offset, datasize);
+		return true;
+	}
+	return false;
+}
+
 /* Conversions::addImfHeader
  * Automatizes this: http://zdoom.org/wiki/Using_OPL_music_in_ZDoom
  *******************************************************************/

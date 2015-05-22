@@ -275,20 +275,25 @@ bool AudioEntryPanel::open()
 		Conversions::jagSndToWav(mcdata, convdata);
 	else if (entry->getType()->getFormat() == "snd_bloodsfx")	// Blood Sound -> WAV
 		Conversions::bloodToWav(entry, convdata);
-	else if (entry->getType()->getFormat() == "mus")  			// MUS -> MIDI
+	else if (entry->getType()->getFormat() == "midi_mus")  			// MUS -> MIDI
 	{
 		Conversions::musToMidi(mcdata, convdata);
 		path.SetExt("mid");
 	}
-	else if (entry->getType()->getFormat() == "xmi" ||  			// HMI/HMP/XMI -> MIDI
-				entry->getType()->getFormat() == "hmi" || entry->getType()->getFormat() == "hmp")
+	else if (entry->getType()->getFormat() == "midi_xmi" ||  		// HMI/HMP/XMI -> MIDI
+				entry->getType()->getFormat() == "midi_hmi" || entry->getType()->getFormat() == "midi_hmp")
 	{
 		Conversions::zmusToMidi(mcdata, convdata, 0, &num_tracks);
 		path.SetExt("mid");
 	}
-	else if (entry->getType()->getFormat() == "gmid")  			// GMID -> MIDI
+	else if (entry->getType()->getFormat() == "midi_gmid")  		// GMID -> MIDI
 	{
 		Conversions::gmidToMidi(mcdata, convdata);
+		path.SetExt("mid");
+	}
+	else if (entry->getType()->getFormat() == "midi_rmid")  		// GMID -> MIDI
+	{
+		Conversions::rmidToMidi(mcdata, convdata);
 		path.SetExt("mid");
 	}
 	else if (entry->getType()->getFormat() == "opl_imf_raw")
@@ -300,9 +305,7 @@ bool AudioEntryPanel::open()
 		convdata.importMem(mcdata.getData(), mcdata.getSize());
 
 	// MIDI format
-	if (entry->getType()->getFormat() == "midi" || entry->getType()->getFormat() == "mus" ||
-		entry->getType()->getFormat() == "gmid" || entry->getType()->getFormat() == "xmi" ||
-		entry->getType()->getFormat() == "hmp"  || entry->getType()->getFormat() == "hmi")
+	if (entry->getType()->getFormat().StartsWith("midi_"))
 	{
 		audio_type = AUTYPE_MIDI;
 		openMidi(convdata, path.GetFullPath());
@@ -704,6 +707,8 @@ bool AudioEntryPanel::updateInfo()
 		break;
 	case AUTYPE_MIDI:
 		info += theMIDIPlayer->getInfo();
+		if (entry->getType() == EntryType::getType("midi_rmid"))
+			info+= Audio::getRmidInfo(mc);
 		break;
 	case AUTYPE_EMU:
 		info += theGMEPlayer->getInfo(subsong);
