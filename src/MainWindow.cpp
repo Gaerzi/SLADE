@@ -44,8 +44,8 @@
 #include "SToolBar.h"
 #include "UndoManagerHistoryPanel.h"
 #include "ArchivePanel.h"
-#include "cl_notebook_art/cl_aui_notebook_art.h"
 #include "Misc.h"
+#include "SAuiTabArt.h"
 #include <wx/aboutdlg.h>
 #include <wx/dnd.h>
 #include <wx/statline.h>
@@ -65,7 +65,6 @@ MainWindow* MainWindow::instance = NULL;
 CVAR(Bool, show_start_page, true, CVAR_SAVE);
 CVAR(String, global_palette, "", CVAR_SAVE);
 CVAR(Bool, mw_maximized, true, CVAR_SAVE);
-CVAR(Int, tab_style, 1, CVAR_SAVE);
 CVAR(Bool, confirm_exit, true, CVAR_SAVE);
 
 
@@ -183,6 +182,7 @@ void MainWindow::setupLayout()
 {
 	// Create the wxAUI manager & related things
 	m_mgr = new wxAuiManager(this);
+	m_mgr->SetArtProvider(getDockArt());
 	wxAuiPaneInfo p_inf;
 
 	// Set icon
@@ -194,10 +194,7 @@ void MainWindow::setupLayout()
 
 	// -- Editor Area --
 	notebook_tabs = new wxAuiNotebook(this, -1, wxDefaultPosition, wxDefaultSize, wxAUI_NB_DEFAULT_STYLE|wxBORDER_NONE|wxAUI_NB_WINDOWLIST_BUTTON|wxNB_FLAT);
-	if (tab_style == 1)
-		notebook_tabs->SetArtProvider(new clAuiTabArt());
-	else if (tab_style == 2)
-		notebook_tabs->SetArtProvider(new clAuiSimpleTabArt());
+	notebook_tabs->SetArtProvider(getTabArt(true));
 
 	// Setup panel info & add panel
 	p_inf.CenterPane();
